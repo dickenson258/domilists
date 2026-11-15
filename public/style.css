@@ -210,6 +210,13 @@ label.inline { display: inline-flex; gap: 8px; align-items: center; cursor: poin
 
 /* ---------- 手机 ---------- */
 .pseudo-fs { position: fixed !important; inset: 0; z-index: 100; width: 100vw !important; height: 100dvh !important; max-height: none !important; aspect-ratio: auto !important; border-radius: 0 !important; }
+@media (orientation: landscape) {
+  /* B 站进度条在 iframe 底部，把它移离 iOS 的屏幕底边手势区。 */
+  .player:is(:fullscreen, :-webkit-full-screen, .pseudo-fs) iframe.bili-ios-embed {
+    bottom: auto;
+    height: calc(100% - max(28px, env(safe-area-inset-bottom, 0px)));
+  }
+}
 .player-fullscreen {
   position: absolute; z-index: 7; top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right));
   display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 12px;

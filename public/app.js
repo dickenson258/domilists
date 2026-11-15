@@ -637,7 +637,7 @@ function mountIframe(box, v, onEnded) {
   // 无法打开新页面或跳转片单所在页面；各平台可在家长设置中单独调整。
   const sandboxed = sandboxOn(v.platform);
   // 有沙箱时外链本来就打不开，不再加透明遮挡（否则会挡住 YouTube 卡片列表的关闭按钮等正常操作）
-  box.innerHTML = `<iframe src="${esc(embedUrl(v))}" allow="autoplay; ${biliMobile ? "fullscreen 'none'" : 'fullscreen'}; encrypted-media; picture-in-picture; storage-access"
+  box.innerHTML = `<iframe ${v.platform === 'bilibili' && deviceKind() === 'ios' ? 'class="bili-ios-embed"' : ''} src="${esc(embedUrl(v))}" allow="autoplay; ${biliMobile ? "fullscreen 'none'" : 'fullscreen'}; encrypted-media; picture-in-picture; storage-access"
       referrerpolicy="strict-origin-when-cross-origin" ${sandboxed ? 'sandbox="allow-scripts allow-same-origin allow-presentation allow-storage-access-by-user-activation"' : ''}></iframe>
     ${s.shield && !sandboxed ? (SHIELDS[v.platform] || SHIELDS.default).map((c) => `<div class="shield ${c}"></div>`).join('') : ''}`;
   if (v.platform === 'bilibili') {
