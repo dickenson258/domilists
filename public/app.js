@@ -545,9 +545,10 @@ function embedUrl(v) {
     return `${host}/embed/${v.vid}?autoplay=1&rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&fs=0&enablejsapi=1&hl=${hl}&origin=${encodeURIComponent(location.origin)}${v.resumeAt ? `&start=${v.resumeAt}` : ''}`;
   }
   if (v.platform === 'bilibili' && v.playType === 'iframe') {
-    const mobileControls = usesBiliMobilePlayer() ? '&danmakuClosed=true&danmakuBtn=2&noFullScreenButton=true' : '';
+    // 手机版识别 quality，实际分辨率由 B 站返回。
+    const mobileOptions = usesBiliMobilePlayer() ? '&quality=80&danmakuClosed=true&danmakuBtn=2&noFullScreenButton=true' : '';
     // 让孩子在 B 站播放器内点击播放，避免浏览器把自动播放降级为静音。
-    return `https://player.bilibili.com/player.html?${v.vid.startsWith('av') ? 'aid=' + v.vid.slice(2) : 'bvid=' + v.vid}&p=${v.page || 1}&autoplay=0&muted=0&danmaku=0${mobileControls}&high_quality=1${v.resumeAt ? `&t=${v.resumeAt}` : ''}`;
+    return `https://player.bilibili.com/player.html?${v.vid.startsWith('av') ? 'aid=' + v.vid.slice(2) : 'bvid=' + v.vid}&p=${v.page || 1}&autoplay=0&muted=0&danmaku=0${mobileOptions}&high_quality=1${v.resumeAt ? `&t=${v.resumeAt}` : ''}`;
   }
   return v.embed;
 }
