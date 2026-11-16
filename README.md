@@ -25,15 +25,25 @@ Domi Lists puts one list in front of the child: only the videos the parent added
 - **Whitelist only.** Kids mode shows only videos in the library. The parent area is behind a 4-digit PIN.
 - **One library, many sites.** YouTube, Bilibili, Tencent Video, Youku, iQIYI, Vimeo, direct mp4 / m3u8 links, and videos in your own Baidu Netdisk (with the helper). Import whole collections, playlists, channels or Netdisk folders.
 - **Keep playback in the list.** Covers hide player logos, titles and YouTube end-screen recommendations. The player sandbox blocks popups and redirects on supported sites. Bilibili videos played in Domi Lists' own player have no Bilibili recommendations.
-- **Privacy: data never leaves the device.** No server, no account, no analytics. The list and settings live only in the browser (localStorage); move them to another device with a JSON export.
+- **Privacy first.** No sign-up, no analytics or tracking. The list and settings stay in this browser (localStorage) by default. Optional end-to-end encrypted family sync can keep the same list on another device (see below). You can also move a list with a JSON export.
+- **Optional family sync.** Keep the same list on a parent's computer and a child's tablet, encrypted on the device before upload. No account. Free during the beta, with limited seats (see below).
 - **Daily watch-time limit**, automatic next episode, and memberships you already pay for (sign in to each site in the same browser).
 - **Works on phones and tablets.** Add it to the home screen. Chinese / English.
 
 ## Overview
 
-- **Pure static website, no server.** Link resolving runs in the browser.
-- **Data stays local.** Video lists and settings are stored only in the browser (localStorage) and are never uploaded.
+- **A static front end.** This repo is the website: static files, with link resolving in the browser. A private API at api.domibuddy.com is used only if you turn on family sync or share a list.
+- **Local by default.** Video lists and settings are stored in the browser (localStorage). They leave the device only if you turn on sync (uploaded as ciphertext we can't read) or share a list (its contents are stored so we can make a short link; never watch history or family information — see the [privacy policy](public/privacy.html)).
 - **Chinese / English.** Switch from the top bar or in Settings.
+
+## Family sync (optional)
+
+By default the list stays on this device. In Settings, a parent can turn on **sync across devices**: organize the list on a computer and a child's tablet updates by itself, so not every device needs the helper.
+
+- No account or sign-up is needed. The list, groups, parent PIN hash and parent settings are encrypted with AES-GCM on your device before upload to api.domibuddy.com. The key stays on your devices; we can't decrypt it.
+- Watch progress, today's watch time and interface language are not synced; they stay on each device.
+- Turning on sync creates a recovery code, shown only on your device. Keep it safe: anyone with the code can manage the synced list.
+- Sync is **free during the beta**, with a limited number of seats (500). Before it becomes a paid feature, we'll tell you in the app **at least 30 days ahead** (we don't collect emails, so the app is the only way we can reach you). Families who join during the beta get an **early-bird price** or extra free time after launch. If you don't subscribe after launch, sync pauses but **the list stays on every device**, and your child can keep watching.
 
 ## Running and deploying
 
@@ -67,6 +77,7 @@ Security design:
 | Single Bilibili video | ✅ title, thumbnail and duration read automatically (via Bilibili's JSONP endpoint) | ✅ |
 | Single video from Tencent Video / Youku / Dailymotion | ✅ plays; parent enters the title | ✅ title, thumbnail, and duration read automatically |
 | Vimeo, direct mp4 / m3u8 links | ✅ | ✅ |
+| Baidu Netdisk (your own files) | ❌ needs the helper | ✅ |
 | YouTube playlist (`list=`) or `/channel/UC…` import | ✅ first 200 videos, no durations (read through YouTube's embedded player); full list with a YouTube Data API key | ✅ no key needed |
 | YouTube `@handle` channel import | ✅ requires a YouTube Data API key | ✅ no key needed |
 | Several links pasted at once (a shared list) | ✅ each link is looked up as above | ✅ |
@@ -93,7 +104,7 @@ With the helper installed, Bilibili videos play in Domi Lists's own player by de
 - **Sign-in status:** with the helper installed, 🔒 → Accounts shows whether this browser is signed in to Bilibili, YouTube, Tencent Video, Youku and iQIYI (with the nickname where the site provides one). It re-checks when you come back from the sign-in page.
 - **Xiaohongshu, Douyin, Xigua and TikTok:** no longer supported. Xiaohongshu's website doesn't play content, and Douyin, Xigua and TikTok are mostly short videos, which aren't a good fit for kids. Their links show an error, and any of their videos already in the library are hidden from kids mode; a parent can delete them in the library.
 - **Phones:** responsive layout, add to home screen, and in-page fullscreen fallback on iPhone.
-- **Backup / transfer:** export and import the list as JSON. Since data is stored per browser, this is how you move a list to a child's tablet.
+- **Backup / transfer:** export and import the list as JSON, or turn on family sync to keep the same list on another device (for example a child's tablet).
 
 ## Files
 
@@ -104,6 +115,7 @@ public/resolver.js              In-browser link resolver (also runs in Node for 
 public/bridge.js                postMessage bridge between the page and the helper
 public/kidstube-helper.user.js  DomiBuddy Helper userscript
 public/i18n.js                  Chinese / English strings
+public/sync.js                  Optional family sync (encrypted; talks to api.domibuddy.com)
 public/style.css                Styles
 server.js                       Optional local preview server (static files only)
 ```
@@ -135,9 +147,19 @@ server.js                       Optional local preview server (static files only
 - **只看白名单。** 孩子模式只显示片单里的视频，家长后台有 4 位密码锁。
 - **一个片单，多个网站。** 支持 YouTube、B站、腾讯视频、优酷、爱奇艺、Vimeo、mp4 / m3u8 直链，以及你自己百度网盘里的视频（需要助手）。合集、播放列表、频道、网盘文件夹可以整个导入。
 - **把播放留在片单里。** 遮罩可以挡住播放器里的标志、标题和 YouTube 片尾推荐，沙盒可按网站开启，阻止播放器打开新页面或跳转片单所在页面。用朵米片单自己的播放器看 B 站视频时，没有 B 站推荐。
-- **隐私：数据不离开设备。** 没有服务器、没有账号、没有统计。片单和设置只存在浏览器里（localStorage），换设备用 JSON 导出 / 导入。
+- **隐私优先。** 无需注册，没有统计或追踪。片单和设置默认只存在本浏览器里（localStorage）。也可以开启端到端加密的家庭同步，把同一份片单放到另一台设备上（见下文）。换设备还可以用 JSON 导出 / 导入。
+- **可选的家庭同步。** 家长可以在电脑和孩子的平板上共用同一份片单，在设备上加密后再上传。不需要账号。测试期间免费，名额有限（详见下文）。
 - **每日观看时长限制**、自动播放下一集，已有的会员照常可用（在同一个浏览器里登录各网站即可）。
 - **手机、平板可用。** 可以添加到主屏幕。支持中文 / 英文。
+
+### 家庭同步（可选）
+
+默认情况下，片单只保存在这台设备上。家长可以在设置里开启**多设备同步**：在电脑上整理片单，孩子的平板会自动更新，不用每台设备都装助手。
+
+- 不需要注册账号。片单、分组、家长密码（哈希）和家长设置在你的设备上用 AES-GCM 加密后才上传到 api.domibuddy.com。加密密钥只保存在你的设备里，我们无法解密。
+- 观看进度、每日已看时长和界面语言不会同步，只保存在各自设备上。
+- 开启同步时会生成一个恢复码，只在你的设备上显示。请妥善保管：拿到恢复码的人可以管理你的同步片单。
+- 测试期间多设备同步**免费**，名额有限（500 个）。正式收费前，会在应用里**至少提前 30 天**通知（我们不收集邮箱，只能在应用里通知）。测试期间开启的家庭，正式上线后可享**早鸟价**或额外的免费时间。正式收费后如果不续订，同步会暂停，但**每台设备上的片单都会保留**，孩子照常能看。
 
 ### 运行和部署
 
@@ -171,6 +193,7 @@ server.js                       Optional local preview server (static files only
 | 单个 B站视频 | ✅ 自动读取标题、封面和时长（通过 B站 JSONP 接口） | ✅ |
 | 腾讯视频 / 优酷 / Dailymotion 单个视频 | ✅ 可以播放，标题由家长填写 | ✅ 自动读取标题、封面和时长 |
 | Vimeo、mp4 / m3u8 直链 | ✅ | ✅ |
+| 你自己百度网盘里的视频 | ❌ 需要助手 | ✅ |
 | 导入 YouTube 播放列表（`list=`）或 `/channel/UC…` 频道 | ✅ 前 200 个视频，不显示时长（通过 YouTube 嵌入播放器读取）；填了 YouTube Data API key 可读取全部 | ✅ 不需要 key |
 | 导入 YouTube `@用户名` 频道 | ✅ 需要 YouTube Data API key | ✅ 不需要 key |
 | 一次粘贴多个链接（片单） | ✅ 每个链接按上面的规则解析 | ✅ |
@@ -197,7 +220,7 @@ server.js                       Optional local preview server (static files only
 - **登录状态：** 装了助手后，🔒 → 账号 页面会显示这个浏览器是否已登录 B站、YouTube、腾讯视频、优酷和爱奇艺（网站提供昵称时也会显示）。从登录页面回来时会自动重新检查。
 - **小红书、抖音、西瓜视频和 TikTok：** 已不再支持。小红书网页版无法播放内容，抖音、西瓜视频和 TikTok 以短视频为主，不适合孩子观看。它们的链接会提示错误，片单里已有的这类视频在孩子模式中隐藏，家长可以在片单里删除。
 - **手机：** 响应式布局，可添加到主屏幕，iPhone 上有页面内全屏的兜底方案。
-- **备份 / 迁移：** 片单可以导出、导入 JSON。因为数据按浏览器存储，把片单搬到孩子的平板上就靠这个。
+- **备份 / 迁移：** 片单可以导出、导入 JSON，也可以开启家庭同步，让同一份片单出现在另一台设备上（比如孩子的平板）。
 
 ### 文件
 
@@ -208,6 +231,7 @@ public/resolver.js              浏览器内的链接解析器（也可以在 No
 public/bridge.js                页面和助手之间的 postMessage 通信
 public/kidstube-helper.user.js  朵米助手用户脚本
 public/i18n.js                  中文 / 英文文案
+public/sync.js                  可选的家庭同步（加密后与 api.domibuddy.com 通信）
 public/style.css                样式
 server.js                       可选的本地预览服务器（只提供静态文件）
 ```
