@@ -52,7 +52,7 @@ Domi Lists is a kids' video list picked by parents. With DomiBuddy Helper you ca
 | Screenshots | 上面 3 张截图 |
 | Small promo tile | `promo-tile-440x280.png` |
 | Official URL / Homepage | `https://lists.domibuddy.com` |
-| Support URL | `https://github.com/dickenson258/kidstube/issues` |
+| Support URL | `https://github.com/dickenson258/domilists/issues` |
 
 ## 4. Privacy（隐私权）
 

@@ -12,7 +12,7 @@ const pkg = JSON.parse(readFileSync(join(ROOT, 'version.json'), 'utf8'));
 // 只在朵米片单自己的网址上运行（localhost / 127.0.0.1 用于本地开发）
 const SITES = [
   'https://lists.domibuddy.com/*', 'https://domibuddy.com/*', 'https://www.domibuddy.com/*',
-  'https://domibuddy.pages.dev/*', 'https://*.domibuddy.pages.dev/*', 'https://dickenson258.github.io/kidstube/*',
+  'https://domibuddy.pages.dev/*', 'https://*.domibuddy.pages.dev/*', 'https://dickenson258.github.io/kidstube/*', 'https://dickenson258.github.io/domilists/*',
   'http://localhost/*', 'http://127.0.0.1/*',
 ];
 const VIDEO_HOSTS = ['bilibili.com', 'b23.tv', 'bili2233.cn', 'youtube.com', 'youtu.be', 'googleapis.com', 'qq.com', 'youku.com', 'vimeo.com', 'dailymotion.com', 'iqiyi.com', 'mgtv.com', 'baidu.com', 'baidupcs.com']

@@ -405,7 +405,7 @@ function continueRow(show) {
     <h2 class="row-title">${t('allVideos')}</h2>`;
 }
 function renderHome() {
-  const legacySite = location.hostname === 'dickenson258.github.io' && /^\/kidstube(?:\/|$)/.test(location.pathname);
+  const legacySite = location.hostname === 'dickenson258.github.io' && /^\/(?:kidstube|domilists)(?:\/|$)/.test(location.pathname);
   const groups = db.groups.filter((g) => kidVideos().some((v) => v.group === g));
   if (homeGroup !== ALL && !groups.includes(homeGroup)) homeGroup = ALL;
   const q = homeQuery.toLowerCase();
