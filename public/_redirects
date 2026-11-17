@@ -1,0 +1,3 @@
+# X campaign links can use /go/x/<campaign> with a distinct path for each post.
+/go/x-intro / 302
+/go/x/:campaign / 302
