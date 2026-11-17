@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Allow: /privacy
+
+Sitemap: https://lists.domibuddy.com/sitemap.xml

@@ -16,6 +16,12 @@ const ESBUILD = ['--yes', 'esbuild@0.24.0'];
 rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
 cpSync(SRC, OUT, { recursive: true });
+// public/ 整目录复制。sitemap 和 robots 必须作为独立文件进 dist/，否则托管方会把未知路径回退成首页 HTML。
+for (const f of ['sitemap.xml', 'robots.txt']) {
+  const text = readFileSync(join(OUT, f), 'utf8');
+  const marker = f === 'sitemap.xml' ? '<loc>https://lists.domibuddy.com/</loc>' : 'Sitemap: https://lists.domibuddy.com/sitemap.xml';
+  if (!text.includes(marker)) throw new Error(`dist/${f} was not copied from public/`);
+}
 
 const run = (args) => execFileSync('npx', [...ESBUILD, ...args], { cwd: ROOT, stdio: ['ignore', 'inherit', 'inherit'] });
 run(['public/app.js', '--bundle', '--format=esm', '--minify', '--target=es2020', '--legal-comments=none', '--charset=utf8', '--outfile=dist/app.js']);
