@@ -1615,23 +1615,47 @@ async function renderImport(code, listId) {
       <p class="hint" style="margin:0">${t('importCount', list.videos.length)}${fresh.length < list.videos.length ? ' · ' + t('importHave', list.videos.length - fresh.length) : ''}</p></div></div>
     <div class="panel"><div class="row">
       <label class="grow import-group">${t('importTo')}<select class="field" id="im-group">
-        <option value="__new">${esc(t('newGroupNamed', title))}</option>${db.groups.map((g) => `<option value="${esc(g)}">${esc(g)}</option>`).join('')}</select></label>
+        ${!fresh.length ? `<option value="__keep">${t('importKeepCategories')}</option>` : ''}<option value="__new">${esc(t('newGroupNamed', title))}</option>${db.groups.map((g) => `<option value="${esc(g)}">${esc(g)}</option>`).join('')}</select></label>
       <button class="btn primary" id="im-go">${t(fresh.length ? 'importMakeYours' : 'importViewSaved')}</button></div>
+      <label id="im-name-label" style="display:${fresh.length ? 'block' : 'none'};margin-top:12px">${t('newGroupPrompt')}<input class="field" id="im-group-name" value="${esc(title)}" maxlength="80" required ${fresh.length ? '' : 'disabled'}></label>
+      <p class="hint" id="im-category-hint" style="display:none">${t('importCategoryHint')}</p>
       <p class="hint">${t('importOwnHint')}</p>
       <p class="hint" style="margin:10px 0 0">${t('importNote')}</p></div>
     <div class="grid">${list.videos.map((v) => `<div class="card static"><div class="thumb">${thumbImg(v)}<span class="plat plat-${v.platform}">${esc(platName(v.platform))}</span>${v.duration ? `<span class="dur">${esc(v.duration)}</span>` : ''}</div><div class="body"><div class="title">${esc(v.title || platName(v.platform))}</div><div class="sub">${esc(v.author || '')}</div></div></div>`).join('')}</div>
   </main>`;
   bindTopbar();
   const button = $('#im-go');
+  const category = $('#im-group');
+  const categoryName = $('#im-group-name');
+  let categoryChanged = false;
+  const updateCategory = () => {
+    categoryChanged = true;
+    const isNew = category.value === '__new';
+    categoryName.disabled = !isNew;
+    categoryName.setCustomValidity('');
+    $('option[value="__new"]', category).textContent = t('newGroupNamed', categoryName.value.trim() || title);
+    $('#im-name-label').style.display = isNew ? 'block' : 'none';
+    $('#im-category-hint').style.display = category.value === '__keep' ? 'none' : 'block';
+    button.textContent = t(category.value === '__keep' ? 'importViewSaved' : 'importSaveCategory');
+  };
+  category.onchange = updateCategory;
+  categoryName.oninput = updateCategory;
   button.onclick = async () => {
     if (button.disabled) return;
+    if (category.value === '__new' && !categoryName.value.trim()) {
+      categoryName.setCustomValidity(t('importCategoryRequired'));
+      categoryName.reportValidity();
+      return;
+    }
     button.disabled = true;
     try {
       if (!(await unlockParent()) || !button.isConnected) return;
-      let group = $('#im-group').value;
+      let group = category.value;
       const missing = list.videos.filter((v) => !exists(v));
-      if (group === '__new') group = title;
-      if (missing.length && !db.groups.includes(group)) db.groups.push(group);
+      const changeCategory = categoryChanged && group !== '__keep';
+      if (group === '__new') group = categoryName.value.trim();
+      if (group === '__keep') group = db.videos.find((v) => unique.has(JSON.stringify([v.platform, v.vid, v.page || 1])))?.group || title;
+      if ((missing.length || changeCategory) && !db.groups.includes(group)) db.groups.push(group);
       // Recheck for each insert so repeated items and a second save never duplicate videos.
       const added = [];
       for (const v of missing) {
@@ -1639,6 +1663,11 @@ async function renderImport(code, listId) {
         const stored = { ...v, id: uid(), group, addedAt: Date.now() };
         db.videos.unshift(stored);
         added.push(stored);
+      }
+      if (changeCategory) {
+        for (const v of db.videos) {
+          if (unique.has(JSON.stringify([v.platform, v.vid, v.page || 1]))) v.group = group;
+        }
       }
       importSeriesCovers(list.seriesCovers, added);
       save();
