@@ -1,3 +1,28 @@
-# X campaign links can use /go/x/<campaign> with a distinct path for each post.
+# Campaigns use /go/<platform>/<content>-<language>-<YYYYMMDD>.
+# Profile links use /go/<platform>/profile. Destinations omit fragments so
+# browsers retain #/import/<code> and other client-side landing routes.
 /go/x-intro / 302
 /go/x/:campaign / 302
+/go/reddit/:campaign / 302
+/go/instagram/:campaign / 302
+/go/threads/:campaign / 302
+/go/facebook/:campaign / 302
+/go/youtube/:campaign / 302
+/go/tiktok/:campaign / 302
+/go/linkedin/:campaign / 302
+/go/pinterest/:campaign / 302
+/go/bluesky/:campaign / 302
+/go/mastodon/:campaign / 302
+/go/telegram/:campaign / 302
+/go/discord/:campaign / 302
+/go/whatsapp/:campaign / 302
+/go/wechat/:campaign / 302
+/go/xiaohongshu/:campaign / 302
+/go/douyin/:campaign / 302
+/go/bilibili/:campaign / 302
+/go/zhihu/:campaign / 302
+/go/hackernews/:campaign / 302
+/go/producthunt/:campaign / 302
+/go/medium/:campaign / 302
+/go/substack/:campaign / 302
+/go/quora/:campaign / 302
