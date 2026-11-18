@@ -468,21 +468,38 @@ function renderHome() {
 
 // ------------------------------------------------------------ 新用户安装指引
 const LINKS = {
+  chromeHelper: 'https://chromewebstore.google.com/detail/pakckgehejgcoofajjnfpapgiabgadfn',
+  firefoxHelper: 'https://addons.mozilla.org/firefox/addon/domibuddy-helper/',
   userscripts: 'https://apps.apple.com/app/userscripts/id1463298887',
   firefoxPlay: 'https://play.google.com/store/apps/details?id=org.mozilla.firefox',
   firefoxSite: 'https://www.mozilla.org/firefox/browsers/mobile/android/',
-  tmAndroid: 'https://addons.mozilla.org/android/addon/tampermonkey/',
   tampermonkey: 'https://www.tampermonkey.net/',
   script: 'kidstube-helper.user.js',
 };
 function deviceKind() {
   const ua = navigator.userAgent;
   if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return 'ios';
-  if (/Android/.test(ua)) return 'android';
+  if (/Android/.test(ua) || navigator.userAgentData?.platform === 'Android') return 'android';
   return 'desktop';
 }
+function supportsStoreHelper() {
+  const { hostname, pathname } = location;
+  return /^(lists\.|www\.)?domibuddy\.com$/.test(hostname) ||
+    /(^|\.)domibuddy\.pages\.dev$/.test(hostname) ||
+    (hostname === 'dickenson258.github.io' && pathname.startsWith('/kidstube/')) ||
+    ['localhost', '127.0.0.1'].includes(hostname);
+}
+function helperStore() {
+  const ua = navigator.userAgent;
+  const kind = deviceKind();
+  if (!supportsStoreHelper() || kind === 'ios') return null;
+  const firefoxMin = kind === 'android' ? 142 : 140;
+  if (Number(ua.match(/\bFirefox\/(\d+)/)?.[1]) >= firefoxMin) return { url: LINKS.firefoxHelper, name: t('g_firefoxStore') };
+  if (kind === 'desktop' && /\bChrome\//.test(ua) && !/Edg\/|OPR\/|SamsungBrowser\/|MicroMessenger/.test(ua)) return { url: LINKS.chromeHelper, name: t('g_chromeStore') };
+  return null;
+}
 // 某一种设备的安装步骤：每步一句话，需要下载的地方直接给按钮
-function deviceSteps(kind) {
+function deviceSteps(kind, { browserOnly = false } = {}) {
   const ua = navigator.userAgent, here = kind === deviceKind();
   const a = (href, label, primary) => `<a class="btn small ${primary ? 'primary' : ''}" href="${href}" target="_blank" rel="noopener">${label}</a>`;
   const step = (text, ...btns) => `<li><div>${text}</div>${btns.length ? `<div class="guide-btns">${btns.join('')}</div>` : ''}</li>`;
@@ -493,10 +510,19 @@ function deviceSteps(kind) {
   } else if (kind === 'android') {
     const ff = here && /Firefox\//.test(ua);
     if (here && !ff) warn = t('g_androidNotFirefox');
-    steps = [ff ? step(t('g_and1ok')) : step(t('g_and1'), a(LINKS.firefoxPlay, 'Google Play', true), a(LINKS.firefoxSite, t('g_site'))),
-      step(t('g_and2'), a(LINKS.tmAndroid, t('g_addon'), true)), step(t('g_and3'), a(LINKS.script, t('helperInstall'), true)), step(t('g_done'))];
+    steps = [ff ? step(t('g_and1ok')) : step(t('g_and1'), a(LINKS.firefoxPlay, 'Google Play', true), a(LINKS.firefoxSite, t('g_site')))];
+    if (!browserOnly) {
+      if (supportsStoreHelper()) steps.push(step(t('g_and2'), a(LINKS.firefoxHelper, t('g_firefoxStore'), true)), step(t('g_done')));
+      else steps.push(step(t('g_customScript'), a(LINKS.tampermonkey, 'Tampermonkey', true)), step(t('g_pc2'), a(LINKS.script, t('helperInstall'), true)), step(t('g_done')));
+    }
   } else {
     steps = [step(t('g_pc1'), a(LINKS.tampermonkey, 'Tampermonkey', true)), step(t('g_pc2'), a(LINKS.script, t('helperInstall'), true)), step(t('g_done'))];
+    const store = here && helperStore();
+    if (supportsStoreHelper()) {
+      const buttons = store ? a(store.url, store.name, true) : a(LINKS.chromeHelper, t('g_chromeStore'), true) + a(LINKS.firefoxHelper, t('g_firefoxStore'), true);
+      return `<p>${t('g_storeDirect')}</p><div class="guide-btns">${buttons}</div>
+        <details class="guide-other"><summary>${t('g_manualInstall')}</summary><ol class="guide-steps">${steps.join('')}</ol></details>`;
+    }
   }
   return `${warn ? `<p class="warn">${warn}</p>` : ''}<ol class="guide-steps">${steps.join('')}</ol>`;
 }
@@ -1918,9 +1944,8 @@ function paneAccounts(el) {
   const s = db.settings, ver = helperVersion();
   el.innerHTML = `<div class="panel"><h2>${t('helperTitle')} <span class="badge ${ver ? 'ok' : ''}">${ver ? t('helperOn', ver) : t('helperOff')}</span></h2>
     <p class="hint">${t('helperIntro')}</p>
-    <div class="row" style="margin-bottom:12px"><a class="btn primary" href="kidstube-helper.user.js" target="_blank" rel="noopener">${t('helperInstall')}</a>
-      <button class="btn small" id="recheck">${t('helperRecheck')}</button></div>
     <div class="steps">${helperGuide()}<p class="hint">${t('helperStepsMore')}</p></div>
+    <div class="row" style="margin-bottom:12px"><button class="btn small" id="recheck">${t('helperRecheck')}</button></div>
     <p class="hint">${t('helperPrivacy')}</p>
     <h3>${t('helperTest')}</h3>
     <p class="hint">${t('helperTestHint')}</p>

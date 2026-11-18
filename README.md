@@ -52,17 +52,19 @@ Domi Lists is just the static files in the `public/` folder:
 - **Local preview:** `npm start` (Node 18+, no dependencies), then open <http://localhost:5173>. Devices on the same Wi-Fi can use the LAN address it prints.
 - **Deployment:** run `node scripts/build.mjs` (bundles and minifies the scripts and adds version stamps for long-term caching; needs network access for `npx esbuild`), then upload `dist/` to any static host, such as GitHub Pages, Cloudflare Pages, Vercel, or Nginx. Uploading `public/` as is also works, just loads slower. Subdirectory deployment is supported. HTTPS is recommended.
 
-## DomiBuddy Helper (userscript)
+## DomiBuddy Helper
 
-Browser cross-origin restrictions (CORS) stop a web page from reading data from sites such as Bilibili. The **DomiBuddy Helper** ([`public/kidstube-helper.user.js`](public/kidstube-helper.user.js)) is a userscript. With it installed, cross-origin requests go out through your userscript manager and use your own sign-ins in that browser. You don't need to copy cookies, and no server is involved.
+Browser cross-origin restrictions (CORS) stop a web page from reading data from sites such as Bilibili. The **DomiBuddy Helper** is available as a browser extension and a [userscript](public/kidstube-helper.user.js). With it installed, requests use your own sign-ins in that browser. You don't need to copy cookies, and no server is involved.
 
-| Device | Browser | Userscript manager |
+| Device | Browser | Installation |
 | --- | --- | --- |
-| Computer | Chrome / Edge / Firefox / Safari | Tampermonkey |
-| Android | Firefox or Edge (Chrome for Android doesn't support extensions) | Tampermonkey |
+| Computer | Chrome | [DomiBuddy Helper on Chrome Web Store](https://chromewebstore.google.com/detail/pakckgehejgcoofajjnfpapgiabgadfn) |
+| Computer | Firefox 140+ | [DomiBuddy Helper on Firefox Add-ons](https://addons.mozilla.org/firefox/addon/domibuddy-helper/) |
+| Android | Firefox 142+ | Install DomiBuddy Helper directly from Firefox Add-ons |
+| Computer | Edge / Safari, or a self-hosted site | Tampermonkey + helper userscript |
 | iPhone / iPad | Safari | Userscripts app (free, open source) |
 
-Installation steps are in Domi Lists under 🔒 → Accounts.
+The store extensions work on Domi Lists’ official domains. For a self-hosted site, use the userscript. Installation steps are in Domi Lists under 🔒 → Accounts.
 
 Security design:
 - The helper only runs on pages that contain `<meta name="kidstube-app">`.
@@ -168,17 +170,19 @@ server.js                       Optional local preview server (static files only
 - **本地预览：** `npm start`（Node 18+，无依赖），然后打开 <http://localhost:5173>。同一 Wi-Fi 下的设备可以用它打印出的局域网地址访问。
 - **部署：** 先运行 `node scripts/build.mjs`（把脚本打包压缩，并加上版本号以便长期缓存；需要联网下载 esbuild），再把 `dist/` 上传到任意静态托管，比如 GitHub Pages、Cloudflare Pages、Vercel 或 Nginx。直接上传 `public/` 也能用，只是打开会慢一些。支持子目录部署，建议使用 HTTPS。
 
-### 朵米助手（油猴脚本）
+### 朵米助手
 
-浏览器的跨域限制（CORS）不允许网页直接读取 B站等网站的数据。**朵米助手**（[`public/kidstube-helper.user.js`](public/kidstube-helper.user.js)）是一个用户脚本。装好后，跨域请求通过你的脚本管理器发出，使用你在这个浏览器里的登录状态。不需要复制 cookie，也不经过任何服务器。
+浏览器的跨域限制（CORS）不允许网页直接读取 B站等网站的数据。**朵米助手**提供浏览器扩展和[用户脚本](public/kidstube-helper.user.js)两种安装方式。装好后，请求使用你在这个浏览器里的登录状态。不需要复制 cookie，也不经过任何服务器。
 
-| 设备 | 浏览器 | 脚本管理器 |
+| 设备 | 浏览器 | 安装方式 |
 | --- | --- | --- |
-| 电脑 | Chrome / Edge / Firefox / Safari | Tampermonkey |
-| 安卓 | Firefox 或 Edge（安卓版 Chrome 不支持扩展） | Tampermonkey |
+| 电脑 | Chrome | [Chrome 商店安装朵米助手](https://chromewebstore.google.com/detail/pakckgehejgcoofajjnfpapgiabgadfn) |
+| 电脑 | Firefox 140+ | [Firefox 商店安装朵米助手](https://addons.mozilla.org/firefox/addon/domibuddy-helper/) |
+| 安卓 | Firefox 142+ | 从 Firefox 商店直接安装朵米助手 |
+| 电脑 | Edge / Safari，或自建网站 | Tampermonkey + 助手脚本 |
 | iPhone / iPad | Safari | Userscripts（免费开源 App） |
 
-安装步骤在朵米片单的 🔒 → 账号 页面里。
+商店扩展支持朵米片单的官方网址。自建网站请使用助手脚本。安装步骤在朵米片单的 🔒 → 账号 页面里。
 
 安全设计：
 - 助手只在包含 `<meta name="kidstube-app">` 的页面上运行。
