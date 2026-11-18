@@ -1702,7 +1702,7 @@ function paneLibrary(el) {
     $('#selnone').disabled = !sel.size;
     $('#delsel').textContent = t('delSelected', sel.size);
     $('#delsel').disabled = !sel.size;
-    $('#delall').disabled = !db.videos.length;
+    $('#delall').disabled = !!libSharedIds || !db.videos.length;
   };
   const draw = () => {
     const list = filtered();
@@ -1748,7 +1748,7 @@ function paneLibrary(el) {
       <div class="spacer"></div>
       <button class="btn primary small" id="share">${ICON.share(16)} ${t('shareList')}</button>
       <button class="btn small" id="newg">${t('manageGroups')}</button>
-      <button class="btn danger-solid small" id="delsel"></button><button class="btn danger small" id="delall" ${libSharedIds ? 'hidden' : ''}>${t('clearAll')}</button></div>
+      <button class="btn danger-solid small" id="delsel"></button><button class="btn danger small" id="delall" style="${libSharedIds ? 'display:none' : ''}">${t('clearAll')}</button></div>
     <div class="table-wrap"><table class="lib"><tbody id="libbody"></tbody></table></div></div>`;
   if (libGroup !== ALL && !db.groups.includes(libGroup)) libGroup = ALL;
   if ($('#nudge-export')) $('#nudge-export').onclick = () => { exportBackup(); db.settings.backupNudgeAt = Date.now(); save(); };
