@@ -270,6 +270,7 @@ function route() {
   document.title = t('appTitle');
   const [, page, arg] = location.hash.split('/');
   if (page !== 'pair') pendingPairCode = null;
+  if (page !== 'parent' || arg !== 'library') libSharedIds = null;
   if (page === 'watch') return renderWatch(arg);
   if (page === 'series') return renderSeries(decodeURIComponent(arg || ''));
   if (page === 'import') return renderImport(arg);
@@ -1580,6 +1581,8 @@ async function renderImport(code, listId) {
   }
   const title = list.title || t('sharedList');
   document.title = title + ' · ' + t('appName');
+  const unique = new Map(list.videos.map((v) => [JSON.stringify([v.platform, v.vid, v.page || 1]), v]));
+  list.videos = [...unique.values()];
   const fresh = list.videos.filter((v) => !exists(v));
   app.innerHTML = topbar() + `<main class="wrap import">
     <div class="import-head">${domi('hop', 64, t('domiName'))}<div><h1>${esc(title)}</h1>
@@ -1587,28 +1590,62 @@ async function renderImport(code, listId) {
     <div class="panel"><div class="row">
       <label class="grow import-group">${t('importTo')}<select class="field" id="im-group">
         <option value="__new">${esc(t('newGroupNamed', title))}</option>${db.groups.map((g) => `<option value="${esc(g)}">${esc(g)}</option>`).join('')}</select></label>
-      <button class="btn primary" id="im-go" ${fresh.length ? '' : 'disabled'}>${fresh.length ? t('importN', fresh.length) : t('importAllHave')}</button></div>
+      <button class="btn primary" id="im-go">${t(fresh.length ? 'importMakeYours' : 'importViewSaved')}</button></div>
+      <p class="hint">${t('importOwnHint')}</p>
       <p class="hint" style="margin:10px 0 0">${t('importNote')}</p></div>
     <div class="grid">${list.videos.map((v) => `<div class="card static"><div class="thumb">${thumbImg(v)}<span class="plat plat-${v.platform}">${esc(platName(v.platform))}</span>${v.duration ? `<span class="dur">${esc(v.duration)}</span>` : ''}</div><div class="body"><div class="title">${esc(v.title || platName(v.platform))}</div><div class="sub">${esc(v.author || '')}</div></div></div>`).join('')}</div>
   </main>`;
   bindTopbar();
-  $('#im-go').onclick = async () => {
-    if (!(await unlockParent())) return;
-    let group = $('#im-group').value;
-    if (group === '__new') {
-      group = title;
-      if (!db.groups.includes(group)) db.groups.push(group);
+  const button = $('#im-go');
+  button.onclick = async () => {
+    if (button.disabled) return;
+    button.disabled = true;
+    try {
+      if (!(await unlockParent()) || !button.isConnected) return;
+      let group = $('#im-group').value;
+      const missing = list.videos.filter((v) => !exists(v));
+      if (group === '__new') group = title;
+      if (missing.length && !db.groups.includes(group)) db.groups.push(group);
+      // Recheck for each insert so repeated items and a second save never duplicate videos.
+      const added = [];
+      for (const v of missing) {
+        if (exists(v)) continue;
+        const stored = { ...v, id: uid(), group, addedAt: Date.now() };
+        db.videos.unshift(stored);
+        added.push(stored);
+      }
+      importSeriesCovers(list.seriesCovers, added);
+      save();
+      if (added.length && listId) fetch(`${LISTS_API}/${encodeURIComponent(listId)}/imported`, { method: 'POST' }).catch(() => {});
+      showSavedImport(list, title, group);
+      backfillThumbs(added);
+      scheduleSeriesCoverBackfill();
+    } finally {
+      if (button.isConnected) button.disabled = false;
     }
-    const added = fresh.filter((v) => !exists(v)).map((v) => ({ ...v, id: uid(), group, addedAt: Date.now() }));
-    db.videos.unshift(...added);
-    importSeriesCovers(list.seriesCovers, added);
-    save();
-    toast(t('importedN', added.length));
-    if (listId) fetch(`${LISTS_API}/${encodeURIComponent(listId)}/imported`, { method: 'POST' }).catch(() => {});
-    location.hash = '#/';
-    backfillThumbs(added);
-    scheduleSeriesCoverBackfill();
   };
+}
+
+function showSavedImport(list, title, group) {
+  const videos = list.videos.map((v) => db.videos.find((x) => x.platform === v.platform && x.vid === v.vid && (x.page || 1) === (v.page || 1))).filter(Boolean);
+  const playable = videos.filter((v) => kidVideos().some((x) => x.id === v.id));
+  app.innerHTML = topbar() + `<main class="wrap import">
+    <div class="import-head"><div><h1>${esc(title)}</h1><p role="status">${t('importSaved')}</p></div></div>
+    <div class="panel"><p class="hint">${t('importSavedHint')}</p><div class="row">
+      <button class="btn primary" id="im-edit">${t('importEdit')}</button>
+      ${playable.length ? `<a class="btn" id="im-watch" href="#/watch/${playable[0].id}">${t('importWatch')}</a>` : ''}
+      <a class="btn" href="#/">${t('back')}</a></div></div>
+    <div class="grid">${playable.map((v) => videoCard(v)).join('')}</div></main>`;
+  bindTopbar();
+  $('#im-edit').onclick = () => {
+    libSharedIds = new Set(videos.map((v) => v.id));
+    libGroup = libCreator = libSeries = ALL;
+    lastGroup = db.groups.includes(group) ? group : videos[0]?.group;
+    location.hash = '#/parent/library';
+  };
+  const lockForWatching = () => { parentUnlocked = false; };
+  $('#im-watch')?.addEventListener('click', lockForWatching);
+  $('.grid', app).addEventListener('click', lockForWatching);
 }
 // 二维码里的精简片单没有封面：B 站封面通过 JSONP 接口补上（不需要助手）
 async function backfillThumbs(list) {
@@ -1623,7 +1660,7 @@ async function backfillThumbs(list) {
   if (!location.hash || location.hash === '#/') route();
 }
 
-let libGroup = ALL, libCreator = ALL, libSeries = ALL;
+let libGroup = ALL, libCreator = ALL, libSeries = ALL, libSharedIds = null;
 function paneLibrary(el) {
   let q = '';
   const sel = new Set(); // 勾选的视频 id
@@ -1653,6 +1690,7 @@ function paneLibrary(el) {
     $('#lg').innerHTML = `<option value="${ALL}">${t('allGroups')}</option>` + db.groups.map((g) => `<option value="${esc(g)}" ${g === libGroup ? 'selected' : ''}>${esc(g)} (${n(g)})</option>`).join('');
   };
   const filtered = () => db.videos
+    .filter((v) => !libSharedIds || libSharedIds.has(v.id))
     .filter((v) => libGroup === ALL || v.group === libGroup)
     .filter((v) => libCreator === ALL || creatorKey(v) === libCreator)
     .filter((v) => libSeries === ALL || (libSeries === NONE ? !v.series : v.series?.id === libSeries))
@@ -1699,6 +1737,7 @@ function paneLibrary(el) {
       <div class="row" style="margin-top:10px"><a class="btn primary small" href="#/parent/settings">${t('syncEnable')}</a><button class="btn small" id="nudge-export">${t('exportBtn')}</button><div class="spacer"></div><button class="btn small" id="nudge-later">${t('later')}</button></div></div>` : ''}
     <div class="panel"><h2>${t('libTitle')} <span class="badge" id="libcnt"></span></h2>
     <p class="hint">${t('libHint')}</p>
+    ${libSharedIds ? `<div class="row"><span>${t('importEditing')}</span><a class="btn small" href="#/parent/add">${t('importAddMore')}</a><button class="btn small" id="im-show-all">${t('importShowAll')}</button></div>` : ''}
     <div class="lib-filters">
       <select class="field" id="lg" title="${t('allGroups')}"></select>
       <select class="field" id="lc" title="${t('allCreators')}"></select>
@@ -1709,12 +1748,13 @@ function paneLibrary(el) {
       <div class="spacer"></div>
       <button class="btn primary small" id="share">${ICON.share(16)} ${t('shareList')}</button>
       <button class="btn small" id="newg">${t('manageGroups')}</button>
-      <button class="btn danger-solid small" id="delsel"></button><button class="btn danger small" id="delall">${t('clearAll')}</button></div>
+      <button class="btn danger-solid small" id="delsel"></button><button class="btn danger small" id="delall" ${libSharedIds ? 'hidden' : ''}>${t('clearAll')}</button></div>
     <div class="table-wrap"><table class="lib"><tbody id="libbody"></tbody></table></div></div>`;
   if (libGroup !== ALL && !db.groups.includes(libGroup)) libGroup = ALL;
   if ($('#nudge-export')) $('#nudge-export').onclick = () => { exportBackup(); db.settings.backupNudgeAt = Date.now(); save(); };
   if ($('#nudge-later')) $('#nudge-later').onclick = () => { db.settings.backupNudgeAt = Date.now(); save(); $('.nudge')?.remove(); };
   refresh();
+  $('#im-show-all')?.addEventListener('click', () => { libSharedIds = null; paneLibrary(el); });
   $('#lg').onchange = (e) => { libGroup = e.target.value; libCreator = ALL; libSeries = ALL; drawCreators(); drawSeries(); draw(); };
   // 分享：勾选了视频就分享勾选的，否则分享当前筛选出来的
   $('#share').onclick = () => {
