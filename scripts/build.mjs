@@ -16,18 +16,22 @@ const ESBUILD = ['--yes', 'esbuild@0.24.0'];
 rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
 cpSync(SRC, OUT, { recursive: true });
-// public/ 整目录复制。sitemap、robots、llms.txt 必须作为独立文件进 dist/，
-// 否则托管方会把未知路径回退成首页 HTML（/llms.txt 会变成 SPA 的 index.html）。
-for (const f of ['sitemap.xml', 'robots.txt', 'llms.txt']) {
+// public/ 整目录复制。这些文件必须真实进 dist/。有 404.html 之后，未知路径返回 404，
+// 不再回退成首页；缺了 sitemap / robots / llms.txt，对应地址也会 404。
+for (const f of ['sitemap.xml', 'robots.txt', 'llms.txt', '404.html']) {
   const text = readFileSync(join(OUT, f), 'utf8');
   const marker = {
     'sitemap.xml': '<loc>https://lists.domibuddy.com/en/watchlists/toddler-watchlist-ages-2-4/</loc>',
     'robots.txt': 'Sitemap: https://lists.domibuddy.com/sitemap.xml',
     'llms.txt': '# Domi Lists (朵米片单)',
+    '404.html': 'Page not found',
   }[f];
   if (!text.includes(marker)) throw new Error(`dist/${f} was not copied from public/`);
   if (f === 'llms.txt' && (/<html/i.test(text) || text.includes('#/import/') || text.includes('/l/'))) {
     throw new Error('dist/llms.txt must stay plain text content URLs, not the SPA or import links');
+  }
+  if (f === '404.html' && (text.includes('id="app"') || text.includes('visit-source.js'))) {
+    throw new Error('dist/404.html must be a real not-found page, not the SPA');
   }
 }
 

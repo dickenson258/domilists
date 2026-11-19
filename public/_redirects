@@ -1,6 +1,12 @@
 # Campaigns use /go/<platform>/<content>-<language>-<YYYYMMDD>.
 # Profile links use /go/<platform>/profile. Destinations omit fragments so
 # browsers retain #/import/<code> and other client-side landing routes.
+#
+# Hostname redirects cannot live in this file (Pages matches the path only).
+# domibuddy.com and www.domibuddy.com 301 to https://lists.domibuddy.com in
+# functions/_middleware.js. A Pages Function also skips _redirects for routes
+# it handles, so those /go rules are repeated in functions/seo-policy.js.
+# Keep both lists in sync; scripts/seo-policy.test.mjs checks.
 /go/x-intro / 302
 /go/x/:campaign / 302
 /go/reddit/:campaign / 302

@@ -1,5 +1,7 @@
 # Cloudflare Pages 部署配置：发布构建好的 dist/（先运行 node scripts/build.mjs）。
 # 部署：npx wrangler pages deploy（首次需要 npx wrangler login）
+# 规范主机 301、pages.dev 的 noindex、?import= 和 /l/* 的 X-Robots-Tag 在 functions/_middleware.js。
+# wrangler 从仓库根目录上传 functions/，不从 dist/ 里拿。
 name = "domibuddy"
 pages_build_output_dir = "dist"
 compatibility_date = "2026-11-01"

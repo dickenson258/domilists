@@ -55,7 +55,8 @@
 /en/guides/youtube-kids-alternative/index.html
   Cache-Control: public, max-age=0, must-revalidate, no-transform
 
-# 真实静态文件。没有这些文件时，Pages 对未知路径回退成首页 HTML（200、text/html）。
+# 根目录有 404.html 之后，Pages 对没有对应文件的路径返回 404，不再把首页当成单页应用兜底。
+# 这些文件必须真实存在，否则 /sitemap.xml、/robots.txt、/llms.txt 也会 404。
 /sitemap.xml
   Content-Type: application/xml; charset=utf-8
 
@@ -65,3 +66,13 @@
 /llms.txt
   Content-Type: text/plain; charset=utf-8
   Cache-Control: public, max-age=0, must-revalidate, no-transform
+
+/404.html
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
+
+# lists.domibuddy.com/l/* 由 Worker kidstube-cloud 响应，到不了这里。
+# 其他主机若打到 Pages，仍然标 noindex,follow（导入页本身不收录，链接可以继续抓）。
+/l
+  X-Robots-Tag: noindex, follow
+/l/*
+  X-Robots-Tag: noindex, follow
