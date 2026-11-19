@@ -790,9 +790,10 @@ function watchYouTube(box, onEnded) {
   return () => window.removeEventListener('message', onMsg);
 }
 
-// 通过显式查询参数启用，供正式站和本机试用。
-const youtubePlayerPreview = ['lists.domibuddy.com', 'localhost', '127.0.0.1', '[::1]'].includes(location.hostname)
-  && new URLSearchParams(location.search).get('youtubePlayer') === 'preview';
+// 正式站默认启用，本机可通过查询参数切换到新版。
+const useDomiYouTubePlayer = location.hostname === 'lists.domibuddy.com'
+  || (['localhost', '127.0.0.1', '[::1]'].includes(location.hostname)
+    && new URLSearchParams(location.search).get('youtubePlayer') === 'preview');
 
 async function youtubePreviewAspect(videoId) {
   const [first, second] = await Promise.all(['oar2', 'oar1'].map((name) => new Promise((resolve) => {
@@ -967,7 +968,7 @@ function openExternal(url, w = 1100, h = 720) {
 }
 
 async function mountPlayer(box, v, onEnded) {
-  if (youtubePlayerPreview && v.platform === 'youtube' && v.playType === 'iframe') {
+  if (useDomiYouTubePlayer && v.platform === 'youtube' && v.playType === 'iframe') {
     return mountYouTubePreview(box, v, onEnded);
   }
   // B 站：装了助手就用朵米片单自己的播放器（手机 Firefox 也能播、没有 B 站推荐、能自动播放下一集），取不到再用嵌入播放器
