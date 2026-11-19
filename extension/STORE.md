@@ -33,7 +33,7 @@
 隐私：
 - 只在朵米片单的网址上工作，其他网页上什么都不做；每个网址第一次使用时需要你确认。
 - 使用你自己浏览器里的登录状态访问视频网站，扩展读取不到你的 Cookie。
-- 不收集、不上传任何数据，没有统计和广告。
+- 不收集、不上传任何数据，没有广告。网站只在你通过带来源标记的推广链接进入时，匿名记录一次来源标记。
 
 **English**
 
@@ -48,7 +48,7 @@ Single YouTube and Bilibili videos and YouTube playlists work without the helper
 Privacy:
 - Runs only on DomiBuddy sites and does nothing elsewhere; each site must be allowed by you once.
 - Uses your own browser sign-ins on video sites; the extension cannot read your cookies.
-- Collects and uploads nothing. No analytics, no ads.
+- Collects and uploads nothing. No ads. The website records an anonymous visit-source tag only when you arrive through a tagged promo link.
 
 ## 类别
 

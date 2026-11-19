@@ -180,7 +180,7 @@
     <nav class="crumb" aria-label="面包屑"><a href="/zh/">朵米片单</a> / <span>3 到 6 岁英文启蒙</span></nav>
     <h1>3–6 岁英文启蒙入门片单：7 个合集和 1 首儿歌</h1>
     <p class="lead">这是一份更完整的英文入门片单，给想和 3 到 6 岁的孩子一起看英文视频的家庭。里面有 7 个家长整理的合集，加上 1 首儿歌，一共 116 个视频：Numberblocks、Alphablocks、Wonderblocks、Maddie's Do You Know?、两组 SciShow Kids、Storyline Online 的绘本朗读，以及 Walking in the Jungle。年龄和英语程度是否合适，由你来判断。你可以在朵米片单里保存这份片单，之后再添加或删除视频。不需要账号。</p>
-    <div class="cta"><a class="btn primary" data-track="try_watchlist" data-source="save_as_my_watchlist" href="https://lists.domibuddy.com/l/NXfOJ8S7">保存为我的片单</a></div>
+    <div class="cta"><a class="btn primary" href="https://lists.domibuddy.com/l/NXfOJ8S7">保存为我的片单</a></div>
     <article class="col">
       <div class="col-top">
         <div class="thumb"><img src="https://i.ytimg.com/vi/jVeYnCehEFE/hqdefault.jpg" alt=""><span class="plat">YouTube</span><span class="dur">5:05</span></div>
@@ -290,7 +290,7 @@
       </div>
     </div>
   </article>
-    <div class="cta"><a class="btn primary" data-track="try_watchlist" data-source="save_as_my_watchlist" href="https://lists.domibuddy.com/l/NXfOJ8S7">保存为我的片单</a></div>
+    <div class="cta"><a class="btn primary" href="https://lists.domibuddy.com/l/NXfOJ8S7">保存为我的片单</a></div>
     <section class="read">
       <h2>观看时注意</h2>
       <p>这些视频是学前语速的英语口播。SciShow Kids 里的一些科学词，初学的孩子可能没听过。</p>
@@ -298,7 +298,7 @@
       <p>你可以随时停下来。在朵米片单里，家长可以设置每天的观看时长。保存之后，每个合集会按集数顺序播放。</p>
       <h2>保存之后</h2>
       <p>保存之后，这份片单会在你的设备上留一份副本。你可以添加或删除视频，再让孩子在孩子模式里看。家长区由你设置的密码保护。不需要账号。</p>
-      <div class="cta"><a class="btn primary" data-track="try_watchlist" data-source="save_as_my_watchlist_after" href="https://lists.domibuddy.com/l/NXfOJ8S7">保存为我的片单</a></div>
+      <div class="cta"><a class="btn primary" href="https://lists.domibuddy.com/l/NXfOJ8S7">保存为我的片单</a></div>
       <h2>关于这份片单</h2>
       <p>这份片单由一位爸爸兼独立开发者整理。标题、频道和时长来自制作这份片单时使用的 YouTube 页面。</p>
       <p>如果链接失效，请在 GitHub 上提一个 issue：<a href="https://github.com/dickenson258/domilists/issues">https://github.com/dickenson258/domilists/issues</a></p>
@@ -310,26 +310,6 @@
     · 一位爸爸兼独立开发者
     · <a href="https://github.com/dickenson258/domilists/issues">报告失效链接</a>
   </footer>
-  <script>
-    // First-party only. Fail soft if POST /v1/events is not shipped yet.
-    document.querySelectorAll('[data-track="try_watchlist"]').forEach((el) => {
-      el.addEventListener('click', () => {
-        const body = {
-          event: 'try_watchlist',
-          page: location.origin + location.pathname,
-          source: el.getAttribute('data-source') || 'save_as_my_watchlist',
-          watchlist_id: 'NXfOJ8S7'
-        };
-        try {
-          fetch('https://api.domibuddy.com/v1/events', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify(body),
-            keepalive: true
-          }).catch(() => {});
-        } catch {}
-      });
-    });
-  </script>
+  <script src="/visit-source.js"></script>
 </body>
 </html>

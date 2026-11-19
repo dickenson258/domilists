@@ -25,14 +25,14 @@ Domi Lists puts one list in front of the child: only the videos the parent added
 - **Whitelist only.** Kids mode shows only videos in the library. The parent area is behind a 4-digit PIN.
 - **One library, many sites.** YouTube, Bilibili, Tencent Video, Youku, iQIYI, Vimeo, direct mp4 / m3u8 links, and videos in your own Baidu Netdisk (with the helper). Import whole collections, playlists, channels or Netdisk folders.
 - **Keep playback in the list.** Covers hide player logos, titles and YouTube end-screen recommendations. The player sandbox blocks popups and redirects on supported sites. Bilibili videos played in Domi Lists' own player have no Bilibili recommendations.
-- **Privacy first.** No sign-up, no analytics or tracking. The list and settings stay in this browser (localStorage) by default. Optional end-to-end encrypted family sync can keep the same list on another device (see below). You can also move a list with a JSON export.
+- **Privacy first.** No sign-up, no ads or third-party tracking; only an anonymous visit-source count if you arrive through a tagged promo link. The list and settings stay in this browser (localStorage) by default. Optional end-to-end encrypted family sync can keep the same list on another device (see below). You can also move a list with a JSON export.
 - **Optional family sync.** Keep the same list on a parent's computer and a child's tablet, encrypted on the device before upload. No account. Free during the beta, with limited seats (see below).
 - **Daily watch-time limit**, automatic next episode, and memberships you already pay for (sign in to each site in the same browser).
 - **Works on phones and tablets.** Add it to the home screen. Chinese / English.
 
 ## Overview
 
-- **A static front end.** This repo is the website: static files, with link resolving in the browser. A private API at api.domibuddy.com is used only if you turn on family sync or share a list.
+- **A static front end.** This repo is the website: static files, with link resolving in the browser. A private API at api.domibuddy.com is used if you turn on family sync, share a list, or arrive through a tagged promo link (anonymous source tag only).
 - **Local by default.** Video lists and settings are stored in the browser (localStorage). They leave the device only if you turn on sync (uploaded as ciphertext we can't read) or share a list (its contents are stored so we can make a short link; never watch history or family information — see the [privacy policy](public/privacy.html)).
 - **Chinese / English.** Switch from the top bar or in Settings.
 
@@ -149,7 +149,7 @@ server.js                       Optional local preview server (static files only
 - **只看白名单。** 孩子模式只显示片单里的视频，家长后台有 4 位密码锁。
 - **一个片单，多个网站。** 支持 YouTube、B站、腾讯视频、优酷、爱奇艺、Vimeo、mp4 / m3u8 直链，以及你自己百度网盘里的视频（需要助手）。合集、播放列表、频道、网盘文件夹可以整个导入。
 - **把播放留在片单里。** 遮罩可以挡住播放器里的标志、标题和 YouTube 片尾推荐，沙盒可按网站开启，阻止播放器打开新页面或跳转片单所在页面。用朵米片单自己的播放器看 B 站视频时，没有 B 站推荐。
-- **隐私优先。** 无需注册，没有统计或追踪。片单和设置默认只存在本浏览器里（localStorage）。也可以开启端到端加密的家庭同步，把同一份片单放到另一台设备上（见下文）。换设备还可以用 JSON 导出 / 导入。
+- **隐私优先。** 无需注册，没有广告或第三方追踪；只有你通过带来源标记的推广链接进入时，才会匿名记录一次来源标记。片单和设置默认只存在本浏览器里（localStorage）。也可以开启端到端加密的家庭同步，把同一份片单放到另一台设备上（见下文）。换设备还可以用 JSON 导出 / 导入。
 - **可选的家庭同步。** 家长可以在电脑和孩子的平板上共用同一份片单，在设备上加密后再上传。不需要账号。测试期间免费，名额有限（详见下文）。
 - **每日观看时长限制**、自动播放下一集，已有的会员照常可用（在同一个浏览器里登录各网站即可）。
 - **手机、平板可用。** 可以添加到主屏幕。支持中文 / 英文。
