@@ -223,18 +223,17 @@ label.inline { display: inline-flex; gap: 8px; align-items: center; cursor: poin
 }
 .yt-preview.in-fullscreen .yt-preview-surface { display: block; }
 .yt-preview-surface:focus-visible { outline: 2px solid #fff; outline-offset: -4px; }
-.yt-preview.in-fullscreen.controls-hidden :is(.yt-preview-center, .yt-preview-controls),
+.yt-preview.in-fullscreen.controls-hidden .yt-preview-controls,
 #player-media:has(.yt-preview.in-fullscreen.controls-hidden) + .player-fullscreen {
   visibility: hidden; pointer-events: none;
 }
+.yt-preview.in-fullscreen.controls-hidden .yt-preview-center:not(:focus-visible) { opacity: 0; }
 .yt-preview-center {
-  top: 50%; left: 50%; transform: translate(-50%, -50%);
-  width: 50px; height: 50px; border: 0; border-radius: 14px;
-  background: rgba(24,22,29,.84); font-size: 23px; cursor: pointer;
+  top: 50%; left: 50%; z-index: 1; transform: translate(-50%, -50%);
+  width: 64px; height: 64px; border: 0; border-radius: 14px;
+  background: #18161d; font-size: 23px; cursor: pointer;
 }
-.yt-preview.playing .yt-preview-center:not(:focus-visible) { opacity: .55; }
 .yt-preview-center:disabled { visibility: hidden; }
-.yt-preview-center.is-replay { background: #18161d; }
 .yt-preview-controls {
   display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap;
   bottom: 0; left: 0; right: 0;

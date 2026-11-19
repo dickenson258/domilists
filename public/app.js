@@ -907,8 +907,6 @@ function mountYouTubePreview(box, v, onEnded) {
     const name = ended ? t('replay') : playing ? label('暂停', 'Pause') : label('播放', 'Play');
     play.setAttribute('aria-label', name);
     play.textContent = ended ? '↻' : playing ? '❚❚' : '▶';
-    play.classList.toggle('is-replay', ended);
-    root.classList.toggle('playing', playing);
   };
   const syncTime = () => {
     const duration = Math.floor(player.getDuration() || 0);
@@ -942,16 +940,16 @@ function mountYouTubePreview(box, v, onEnded) {
   syncButton();
   setControlsHidden(false);
   play.onclick = () => {
+    if (!ready || !active) return;
+    playing = !playing;
+    const replay = ended;
+    ended = false;
+    syncButton();
     showControls();
-    if (playing) player.pauseVideo();
-    else {
-      if (ended) {
-        ended = false;
-        player.seekTo(0, true);
-        syncButton();
-      }
+    if (playing) {
+      if (replay) player.seekTo(0, true);
       player.playVideo();
-    }
+    } else player.pauseVideo();
   };
   seek.oninput = () => {
     scrubbing = true;
@@ -980,6 +978,8 @@ function mountYouTubePreview(box, v, onEnded) {
           if (!active || !root.isConnected) return;
           clearTimeout(readyTimeout);
           ready = true;
+          playing = player.getPlayerState() === 1;
+          syncButton();
           status.hidden = true;
           play.disabled = volume.disabled = false;
           volume.value = player.isMuted() ? 0 : player.getVolume();
@@ -989,13 +989,14 @@ function mountYouTubePreview(box, v, onEnded) {
         },
         onStateChange: ({ data }) => {
           if (!ready || !active || !root.isConnected) return;
-          playing = data === 1;
+          // 缓冲可能出现在开播或拖动进度后，保留上一次播放意图。
+          if (data !== 3) playing = data === 1;
           if (data === 0 && !ended) {
             ended = true;
             box.dispatchEvent(new CustomEvent('kt-time', { detail: { t: Infinity, d: 1 } }));
             onEnded?.();
           }
-          if (playing) {
+          if (data === 1) {
             ended = false;
             const rates = player.getAvailablePlaybackRates();
             rate.replaceChildren(...rates.map((speed) => new Option(speed + '×', speed)));
@@ -1006,6 +1007,12 @@ function mountYouTubePreview(box, v, onEnded) {
           syncTime();
           if (data === 0 || data === 1 || data === 2) showControls();
           box.dispatchEvent(new Event('kt-state'));
+        },
+        onAutoplayBlocked: () => {
+          if (!ready || !active || !root.isConnected) return;
+          playing = player.getPlayerState() === 1;
+          syncButton();
+          showControls();
         },
         onPlaybackRateChange: ({ data }) => { rate.value = data; },
         onError: ({ data }) => fallback(data),
