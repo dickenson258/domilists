@@ -825,6 +825,7 @@ function mountYouTubePreview(box, v, onEnded) {
     <div class="yt-preview-frame"><iframe id="yt-preview-embed" title="${esc(v.title)}" tabindex="-1" src="${esc(src.href)}"
       allow="autoplay; encrypted-media; storage-access" referrerpolicy="strict-origin-when-cross-origin"
       ${sandboxOn('youtube') ? 'sandbox="allow-scripts allow-same-origin allow-presentation allow-storage-access-by-user-activation"' : ''}></iframe></div>
+    <button type="button" class="yt-preview-surface"></button>
     <button type="button" class="yt-preview-center" disabled></button>
     <div class="yt-preview-controls" role="group" aria-label="${label('播放控制', 'Playback controls')}">
       <input type="range" class="yt-preview-seek" min="0" max="0" step="1" value="0" aria-label="${label('播放进度', 'Playback progress')}" disabled>
@@ -837,6 +838,7 @@ function mountYouTubePreview(box, v, onEnded) {
   const root = $('.yt-preview', box);
   const frame = $('.yt-preview-frame', root);
   const iframe = $('iframe', root);
+  const surface = $('.yt-preview-surface', root);
   const play = $('.yt-preview-center', root);
   const seek = $('.yt-preview-seek', root);
   const time = $('.yt-preview-time', root);
@@ -846,6 +848,54 @@ function mountYouTubePreview(box, v, onEnded) {
   let player, timer, readyTimeout, unmountNative;
   let active = true, ready = false, playing = false, ended = false, scrubbing = false;
   let lastProgress = -1;
+  let hideTimer, pointerHeld = false;
+  const gestures = new AbortController();
+  const events = { signal: gestures.signal };
+
+  const setControlsHidden = (hidden) => {
+    root.classList.toggle('controls-hidden', hidden);
+    surface.setAttribute('aria-expanded', String(!hidden));
+    surface.setAttribute('aria-label', hidden
+      ? label('显示播放控制', 'Show playback controls')
+      : label('隐藏播放控制', 'Hide playback controls'));
+  };
+  const showControls = () => {
+    clearTimeout(hideTimer);
+    setControlsHidden(false);
+    if (!ready || ended || pointerHeld || !root.classList.contains('in-fullscreen')) return;
+    hideTimer = setTimeout(() => {
+      const focused = document.activeElement;
+      if (focused !== surface && root.contains(focused) && focused.matches(':focus-visible')) return;
+      setControlsHidden(true);
+    }, 3000);
+  };
+  surface.onclick = () => {
+    if (root.classList.contains('controls-hidden')) showControls();
+    else {
+      clearTimeout(hideTimer);
+      setControlsHidden(true);
+    }
+  };
+  box.addEventListener('kt-fullscreen', (event) => {
+    root.classList.toggle('in-fullscreen', event.detail);
+    showControls();
+  }, events);
+  root.addEventListener('pointerdown', (event) => {
+    if (!root.classList.contains('in-fullscreen') || event.target === surface) return;
+    pointerHeld = true;
+    showControls();
+  }, events);
+  const releaseControls = () => {
+    if (!pointerHeld) return;
+    pointerHeld = false;
+    showControls();
+  };
+  window.addEventListener('pointerup', releaseControls, events);
+  window.addEventListener('pointercancel', releaseControls, events);
+  root.addEventListener('focusout', (event) => {
+    if (event.target !== surface && !root.classList.contains('controls-hidden')) showControls();
+  }, events);
+  root.classList.toggle('in-fullscreen', box.classList.contains('has-fullscreen'));
 
   void youtubePreviewAspect(v.vid).then((aspect) => {
     if (!active || !root.isConnected || !aspect) return;
@@ -875,6 +925,8 @@ function mountYouTubePreview(box, v, onEnded) {
   };
   const dispose = () => {
     active = false;
+    gestures.abort();
+    clearTimeout(hideTimer);
     clearTimeout(readyTimeout);
     clearInterval(timer);
     player?.destroy();
@@ -888,7 +940,9 @@ function mountYouTubePreview(box, v, onEnded) {
   };
 
   syncButton();
+  setControlsHidden(false);
   play.onclick = () => {
+    showControls();
     if (playing) player.pauseVideo();
     else {
       if (ended) {
@@ -930,6 +984,7 @@ function mountYouTubePreview(box, v, onEnded) {
           play.disabled = volume.disabled = false;
           volume.value = player.isMuted() ? 0 : player.getVolume();
           syncTime();
+          showControls();
           timer = setInterval(syncTime, 350);
         },
         onStateChange: ({ data }) => {
@@ -949,6 +1004,7 @@ function mountYouTubePreview(box, v, onEnded) {
           }
           syncButton();
           syncTime();
+          if (data === 0 || data === 1 || data === 2) showControls();
           box.dispatchEvent(new Event('kt-state'));
         },
         onPlaybackRateChange: ({ data }) => { rate.value = data; },
@@ -1214,6 +1270,10 @@ function renderWatch(id) {
   const fullscreenElement = () => document.fullscreenElement || document.webkitFullscreenElement;
   const syncFsButton = () => {
     const active = fullscreenElement() === box || box.classList.contains('pseudo-fs');
+    if (active !== media.classList.contains('has-fullscreen')) {
+      media.classList.toggle('has-fullscreen', active);
+      media.dispatchEvent(new CustomEvent('kt-fullscreen', { detail: active }));
+    }
     const label = t(active ? 'exitFullscreen' : 'fullscreen');
     fs.setAttribute('aria-label', label);
     fs.title = label;
