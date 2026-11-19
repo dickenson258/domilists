@@ -854,8 +854,9 @@ function mountYouTubePreview(box, v, onEnded) {
 
   const setControlsHidden = (hidden) => {
     root.classList.toggle('controls-hidden', hidden);
-    surface.setAttribute('aria-expanded', String(!hidden));
-    surface.setAttribute('aria-label', hidden
+    const showOnTap = hidden || (root.classList.contains('center-quiet') && !root.classList.contains('in-fullscreen'));
+    surface.setAttribute('aria-expanded', String(!showOnTap));
+    surface.setAttribute('aria-label', showOnTap
       ? label('显示播放控制', 'Show playback controls')
       : label('隐藏播放控制', 'Hide playback controls'));
   };
@@ -870,8 +871,10 @@ function mountYouTubePreview(box, v, onEnded) {
     }, 3000);
   };
   surface.onclick = () => {
-    if (root.classList.contains('controls-hidden')) showControls();
-    else {
+    if (root.classList.contains('controls-hidden') || !root.classList.contains('in-fullscreen')) {
+      root.classList.remove('center-quiet');
+      showControls();
+    } else {
       clearTimeout(hideTimer);
       setControlsHidden(true);
     }
@@ -944,6 +947,8 @@ function mountYouTubePreview(box, v, onEnded) {
     playing = !playing;
     const replay = ended;
     ended = false;
+    // YouTube 自己会闪现播放反馈。保留可点区域，待用户唤出控件再显示朵米的暂停图标。
+    root.classList.toggle('center-quiet', playing);
     syncButton();
     showControls();
     if (playing) {
@@ -991,6 +996,7 @@ function mountYouTubePreview(box, v, onEnded) {
           if (!ready || !active || !root.isConnected) return;
           // 缓冲可能出现在开播或拖动进度后，保留上一次播放意图。
           if (data !== 3) playing = data === 1;
+          if (data === 0 || data === 2) root.classList.remove('center-quiet');
           if (data === 0 && !ended) {
             ended = true;
             box.dispatchEvent(new CustomEvent('kt-time', { detail: { t: Infinity, d: 1 } }));
@@ -1011,6 +1017,7 @@ function mountYouTubePreview(box, v, onEnded) {
         onAutoplayBlocked: () => {
           if (!ready || !active || !root.isConnected) return;
           playing = player.getPlayerState() === 1;
+          root.classList.remove('center-quiet');
           syncButton();
           showControls();
         },
