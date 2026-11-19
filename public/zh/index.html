@@ -104,7 +104,7 @@
       <div>
         <h1>一个免费的网页应用，只放你挑选的视频</h1>
         <p class="blurb">用 YouTube 和 Bilibili 给孩子做一份片单。免费，不用注册。</p>
-        <a class="btn primary" data-track="try_watchlist" data-source="zh_hero" href="/zh/watchlists/english-starter-ages-3-6/">试试 3 到 6 岁的英文入门片单</a>
+        <a class="btn primary" href="/zh/watchlists/english-starter-ages-3-6/">试试 3 到 6 岁的英文入门片单</a>
       </div>
       <figure class="preview">
         <figcaption>产品预览</figcaption>
@@ -201,7 +201,7 @@
       </ol>
       <p>片单和设置默认留在这个浏览器里。只有你打开家庭同步或分享片单时，才会离开这台设备。家庭同步是可选的，测试期免费，一共 500 个试用名额。</p>
       <p>你也可以在家长区设置每天的观看时长。</p>
-      <p class="closing">先看看 <a data-track="try_watchlist" data-source="zh_closing" href="/zh/watchlists/english-starter-ages-3-6/">3 到 6 岁的英文入门片单</a>，保存之后可以按自己的想法修改。</p>
+      <p class="closing">先看看 <a href="/zh/watchlists/english-starter-ages-3-6/">3 到 6 岁的英文入门片单</a>，保存之后可以按自己的想法修改。</p>
     </section>
   </main>
   <footer>
@@ -210,27 +210,6 @@
     · <a href="/privacy">隐私</a>
     · <a href="https://github.com/dickenson258/domilists">GitHub</a>
   </footer>
-  <script>
-    // First-party only. Fail soft if POST /v1/events is not shipped yet.
-    // Do not describe try_watchlist in privacy.html until that API is live.
-    document.querySelectorAll('[data-track="try_watchlist"]').forEach((el) => {
-      el.addEventListener('click', () => {
-        const body = {
-          event: 'try_watchlist',
-          page: location.origin + location.pathname,
-          source: el.getAttribute('data-source') || 'en',
-          watchlist_id: 'NXfOJ8S7'
-        };
-        try {
-          fetch('https://api.domibuddy.com/v1/events', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify(body),
-            keepalive: true
-          }).catch(() => {});
-        } catch {}
-      });
-    });
-  </script>
+  <script src="/visit-source.js"></script>
 </body>
 </html>

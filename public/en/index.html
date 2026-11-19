@@ -104,7 +104,7 @@
       <div>
         <h1>A free web app for the videos you pick</h1>
         <p class="blurb">Build a kids watchlist from YouTube and Bilibili. Free, no account.</p>
-        <a class="btn primary" data-track="try_watchlist" data-source="en_hero" href="/en/watchlists/english-starter-ages-3-6/">Try the English starter list for ages 3 to 6</a>
+        <a class="btn primary" href="/en/watchlists/english-starter-ages-3-6/">Try the English starter list for ages 3 to 6</a>
       </div>
       <figure class="preview">
         <figcaption>Product preview</figcaption>
@@ -201,7 +201,7 @@
       </ol>
       <p>The list and settings stay in this browser unless you turn on family sync or share a list. Family sync is optional, and it is free during a limited beta with 500 trial spots.</p>
       <p>You can also set a daily watch-time limit in the parent area.</p>
-      <p class="closing">See the <a data-track="try_watchlist" data-source="en_closing" href="/en/watchlists/english-starter-ages-3-6/">English starter watchlist for ages 3 to 6</a>, then save it and change it as you like.</p>
+      <p class="closing">See the <a href="/en/watchlists/english-starter-ages-3-6/">English starter watchlist for ages 3 to 6</a>, then save it and change it as you like.</p>
     </section>
   </main>
   <footer>
@@ -210,27 +210,6 @@
     · <a href="/privacy">Privacy</a>
     · <a href="https://github.com/dickenson258/domilists">GitHub</a>
   </footer>
-  <script>
-    // First-party only. Fail soft if POST /v1/events is not shipped yet.
-    // Do not describe try_watchlist in privacy.html until that API is live.
-    document.querySelectorAll('[data-track="try_watchlist"]').forEach((el) => {
-      el.addEventListener('click', () => {
-        const body = {
-          event: 'try_watchlist',
-          page: location.origin + location.pathname,
-          source: el.getAttribute('data-source') || 'en',
-          watchlist_id: 'NXfOJ8S7'
-        };
-        try {
-          fetch('https://api.domibuddy.com/v1/events', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify(body),
-            keepalive: true
-          }).catch(() => {});
-        } catch {}
-      });
-    });
-  </script>
+  <script src="/visit-source.js"></script>
 </body>
 </html>

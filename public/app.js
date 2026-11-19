@@ -17,53 +17,6 @@ const ALL = '__all';
 const STARTER_ID = 'NXfOJ8S7';
 const STARTER_SHORT = 'https://lists.domibuddy.com/l/NXfOJ8S7';
 const starterPage = () => `${db.settings.lang === 'zh' ? '/zh' : '/en'}/watchlists/english-starter-ages-3-6/`;
-const EVENTS_API = 'https://api.domibuddy.com/v1/events';
-// TODO: privacy.html must not claim try_watchlist / first_playback_started until POST /v1/events ships.
-function eventPage() {
-  return location.origin + location.pathname;
-}
-function trackEvent(name, { source, watchlistId } = {}) {
-  const body = { event: name, page: eventPage(), source: source || 'app' };
-  if (watchlistId && /^[A-Za-z0-9_-]{4,32}$/.test(watchlistId)) body.watchlist_id = watchlistId;
-  fetch(EVENTS_API, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body),
-    keepalive: true,
-  }).catch(() => {});
-}
-function bindTrack(root = document) {
-  root.querySelectorAll('[data-track="try_watchlist"]').forEach((el) => {
-    el.addEventListener('click', () => trackEvent('try_watchlist', { source: el.dataset.source || 'starter', watchlistId: STARTER_ID }));
-  });
-}
-function rememberPublicList(id) {
-  if (!id || !/^[A-Za-z0-9_-]{4,32}$/.test(id)) return;
-  try { sessionStorage.setItem('domi:publicList', id); } catch {}
-}
-let playbackSent = false;
-function markPlaybackStarted() {
-  if (playbackSent) return;
-  try {
-    if (localStorage.getItem('domi:firstPlayback')) { playbackSent = true; return; }
-    if (sessionStorage.getItem('domi:eventsMissing')) return;
-  } catch {}
-  playbackSent = true;
-  let watchlistId = '';
-  try { watchlistId = sessionStorage.getItem('domi:publicList') || ''; } catch {}
-  const body = { event: 'first_playback_started', page: eventPage(), source: 'player' };
-  if (/^[A-Za-z0-9_-]{4,32}$/.test(watchlistId)) body.watchlist_id = watchlistId;
-  fetch(EVENTS_API, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body),
-    keepalive: true,
-  }).then((r) => {
-    if (r.ok) { try { localStorage.setItem('domi:firstPlayback', '1'); } catch {} return; }
-    playbackSent = false;
-    if (r.status === 404) { try { sessionStorage.setItem('domi:eventsMissing', '1'); } catch {} }
-  }).catch(() => { playbackSent = false; });
-}
 
 // ------------------------------------------------------------ 本地存储
 const KEY = 'kidstube:v1';
@@ -538,7 +491,6 @@ function renderHome() {
     exportBackup();
   });
   $('#guide-parent')?.addEventListener('click', () => $('#parent-btn')?.click());
-  bindTrack(app);
   $('#clear-filters')?.addEventListener('click', () => { homeQuery = ''; homeGroup = ALL; homeCreator = ALL; renderHome(); });
   // 已安装，重新检测：先问一下助手；没回应就刷新页面（刚装好的脚本要刷新后才会注入）
   $('#guide-recheck')?.addEventListener('click', async (e) => {
@@ -645,7 +597,7 @@ function emptyHome() {
       <section class="path-card path-starter">
         <h2>${t('pathStarterTitle')}</h2>
         <p>${t('pathStarterBody')}</p>
-        <a class="btn starter-btn" data-track="try_watchlist" data-source="app_browse_starter" href="${starterPage()}">${t('pathStarterCta')}</a>
+        <a class="btn starter-btn" href="${starterPage()}">${t('pathStarterCta')}</a>
         <a class="join-link" href="#/join">${t('pathJoin')}</a>
       </section>
     </div>
@@ -832,7 +784,6 @@ function watchYouTube(box, onEnded) {
     const state = d?.event === 'onStateChange' ? d.info : d?.event === 'infoDelivery' && typeof d.info?.playerState === 'number' ? d.info.playerState : null;
     if (state === null) return;
     show(state);
-    if (state === 1) markPlaybackStarted();
     if (state !== lastState) { lastState = state; box.dispatchEvent(new Event('kt-state')); }
   };
   window.addEventListener('message', onMsg);
@@ -889,7 +840,7 @@ function mountVideo(box, v, src, onEnded, onFail, { forceHls = false, hlsConfig 
     box.parentElement.classList.toggle('portrait', video.videoHeight > video.videoWidth);
     if (v.resumeAt && v.resumeAt < video.duration - 8) video.currentTime = v.resumeAt;
   }, { once: false });
-  video.addEventListener('playing', () => { played = true; markPlaybackStarted(); });
+  video.addEventListener('playing', () => { played = true; });
   video.addEventListener('ended', () => onEnded?.());
   if (onFail) video.addEventListener('error', () => { if (!played && box.isConnected) onFail(); });
   if (forceHls || (/\.m3u8(\?|$)/i.test(src) && !video.canPlayType('application/vnd.apple.mpegurl'))) {
@@ -1259,9 +1210,8 @@ function paneAdd(el) {
       <div class="platforms">${['vimeo', 'iqiyi'].map(badge).join('')}<span class="plat-other">${t('directLink')}</span>${['qq', 'youku', 'baidupan'].map(badge).join('')}</div>
       <p class="hint">${t('platformLine')}</p>
     </details>
-    <p class="hint"><a data-track="try_watchlist" data-source="app_try_starter" href="${STARTER_SHORT}">${t('tryStarter')}</a></p>
+    <p class="hint"><a href="${STARTER_SHORT}">${t('tryStarter')}</a></p>
     <div id="helper-tip"></div><div id="result"></div></div>`;
-  bindTrack(el);
   bindGroupSelect($('#grp'));
   detectHelper().then((v) => {
     const tip = $('#helper-tip');
@@ -1742,12 +1692,10 @@ async function renderShort(id) {
 async function renderImport(code, listId) {
   let list;
   try { list = await decodeList(code || ''); } catch { list = null; }
-  if (listId) rememberPublicList(listId);
   if (!list || !list.videos.length) {
     app.innerHTML = topbar() + `<main class="wrap rest"><div class="big">${domi('idle', 100, t('domiName'))}</div><h1>${t('importBad')}</h1><p class="hint">${t('importBadNext')}</p>
-      <div class="row" style="justify-content:center"><a class="btn primary" data-track="try_watchlist" data-source="import_fail_starter" href="${starterPage()}">${t('pathStarterCta')}</a><a class="btn" href="#/parent/add">${t('pathAddTitle')}</a></div></main>`;
+      <div class="row" style="justify-content:center"><a class="btn primary" href="${starterPage()}">${t('pathStarterCta')}</a><a class="btn" href="#/parent/add">${t('pathAddTitle')}</a></div></main>`;
     bindTopbar();
-    bindTrack(app);
     return;
   }
   const title = list.title || t('sharedList');
@@ -1869,10 +1817,9 @@ function paneLibrary(el) {
       <h2>${t('noVideos')}</h2>
       <div class="row" style="justify-content:center">
         <a class="btn primary" href="#/parent/add">${t('pathAddCta')}</a>
-        <a class="btn" data-track="try_watchlist" data-source="library_browse_starter" href="${starterPage()}">${t('pathStarterCta')}</a>
+        <a class="btn" href="${starterPage()}">${t('pathStarterCta')}</a>
       </div>
     </div>`;
-    bindTrack(el);
     return;
   }
   let q = '';

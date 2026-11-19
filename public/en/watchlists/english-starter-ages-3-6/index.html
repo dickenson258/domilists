@@ -180,7 +180,7 @@
     <nav class="crumb" aria-label="Breadcrumb"><a href="/en/">Domi Lists</a> / <span>English starter ages 3 to 6</span></nav>
     <h1>An English Starter Watchlist for Ages 3–6: Seven Collections and a Song</h1>
     <p class="lead">This is a fuller English starter for families who want to try English-language videos with a child aged 3 to 6. It has 7 parent-made collections and 1 song, 116 videos in all: Numberblocks, Alphablocks, Wonderblocks, Maddie's Do You Know?, two SciShow Kids collections, Storyline Online read-alouds, and Walking in the Jungle. You decide whether the age range and English level are right for your child. You can save the list in Domi Lists and add or remove videos afterwards. No account is required.</p>
-    <div class="cta"><a class="btn primary" data-track="try_watchlist" data-source="save_as_my_watchlist" href="https://lists.domibuddy.com/l/NXfOJ8S7">Save as my watchlist</a></div>
+    <div class="cta"><a class="btn primary" href="https://lists.domibuddy.com/l/NXfOJ8S7">Save as my watchlist</a></div>
     <article class="col">
       <div class="col-top">
         <div class="thumb"><img src="https://i.ytimg.com/vi/jVeYnCehEFE/hqdefault.jpg" alt=""><span class="plat">YouTube</span><span class="dur">5:05</span></div>
@@ -290,7 +290,7 @@
       </div>
     </div>
   </article>
-    <div class="cta"><a class="btn primary" data-track="try_watchlist" data-source="save_as_my_watchlist" href="https://lists.domibuddy.com/l/NXfOJ8S7">Save as my watchlist</a></div>
+    <div class="cta"><a class="btn primary" href="https://lists.domibuddy.com/l/NXfOJ8S7">Save as my watchlist</a></div>
     <section class="read">
       <h2>Things to watch for</h2>
       <p>The videos are spoken English at a preschool pace. Some science words in the SciShow Kids collections may be new to a beginner.</p>
@@ -298,7 +298,7 @@
       <p>You can stop at any time. In Domi Lists, a parent can set a daily watch-time limit. After you save, each collection plays in episode order.</p>
       <h2>After you save</h2>
       <p>Saving puts a copy of this list on your device. You can add or remove videos, then let your child watch in kids mode. The parent area is protected by a PIN you set. No account is required.</p>
-      <div class="cta"><a class="btn primary" data-track="try_watchlist" data-source="save_as_my_watchlist_after" href="https://lists.domibuddy.com/l/NXfOJ8S7">Save as my watchlist</a></div>
+      <div class="cta"><a class="btn primary" href="https://lists.domibuddy.com/l/NXfOJ8S7">Save as my watchlist</a></div>
       <h2>About this list</h2>
       <p>This list was put together by a dad and indie developer. Titles, channels, and durations come from the YouTube pages used to build the list.</p>
       <p>If a link is broken, please open an issue on GitHub: <a href="https://github.com/dickenson258/domilists/issues">https://github.com/dickenson258/domilists/issues</a></p>
@@ -310,26 +310,6 @@
     · a dad and indie developer
     · <a href="https://github.com/dickenson258/domilists/issues">Report a broken link</a>
   </footer>
-  <script>
-    // First-party only. Fail soft if POST /v1/events is not shipped yet.
-    document.querySelectorAll('[data-track="try_watchlist"]').forEach((el) => {
-      el.addEventListener('click', () => {
-        const body = {
-          event: 'try_watchlist',
-          page: location.origin + location.pathname,
-          source: el.getAttribute('data-source') || 'save_as_my_watchlist',
-          watchlist_id: 'NXfOJ8S7'
-        };
-        try {
-          fetch('https://api.domibuddy.com/v1/events', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify(body),
-            keepalive: true
-          }).catch(() => {});
-        } catch {}
-      });
-    });
-  </script>
+  <script src="/visit-source.js"></script>
 </body>
 </html>
