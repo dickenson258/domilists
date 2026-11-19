@@ -311,7 +311,7 @@
     · <a href="https://github.com/dickenson258/domilists/issues">Report a broken link</a>
   </footer>
   <script>
-    // First-party only. Fail soft if POST /v1/events is not shipped yet.
+    // First-party usage events; described in privacy.html. Fail soft if the request fails.
     document.querySelectorAll('[data-track="try_watchlist"]').forEach((el) => {
       el.addEventListener('click', () => {
         const body = {

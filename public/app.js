@@ -18,7 +18,7 @@ const STARTER_ID = 'NXfOJ8S7';
 const STARTER_SHORT = 'https://lists.domibuddy.com/l/NXfOJ8S7';
 const starterPage = () => `${db.settings.lang === 'zh' ? '/zh' : '/en'}/watchlists/english-starter-ages-3-6/`;
 const EVENTS_API = 'https://api.domibuddy.com/v1/events';
-// TODO: privacy.html must not claim try_watchlist / first_playback_started until POST /v1/events ships.
+// First-party usage events; described in privacy.html.
 function eventPage() {
   return location.origin + location.pathname;
 }
