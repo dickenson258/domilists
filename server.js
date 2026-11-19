@@ -20,7 +20,11 @@ http
   .createServer((req, res) => {
     const pathname = decodeURIComponent(new URL(req.url, 'http://x').pathname);
     let file = path.normalize(path.join(PUBLIC, pathname === '/' ? 'index.html' : pathname));
-    if (!file.startsWith(PUBLIC) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) file = path.join(PUBLIC, 'index.html');
+    if (!file.startsWith(PUBLIC)) file = path.join(PUBLIC, 'index.html');
+    else if (fs.existsSync(file) && fs.statSync(file).isDirectory()) {
+      const idx = path.join(file, 'index.html');
+      file = fs.existsSync(idx) ? idx : path.join(PUBLIC, 'index.html');
+    } else if (!fs.existsSync(file)) file = path.join(PUBLIC, 'index.html');
     res.writeHead(200, { 'content-type': MIME[path.extname(file)] || 'application/octet-stream' });
     fs.createReadStream(file).pipe(res);
   })
