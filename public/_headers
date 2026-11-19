@@ -26,6 +26,14 @@
   Cache-Control: public, max-age=0, must-revalidate, no-transform
 /en/watchlists/english-starter-ages-3-6/index.html
   Cache-Control: public, max-age=0, must-revalidate, no-transform
+/zh/
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
+/zh/index.html
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
+/zh/watchlists/english-starter-ages-3-6/
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
+/zh/watchlists/english-starter-ages-3-6/index.html
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
 
 # 真实静态文件。没有这两个文件时，Pages 对未知路径回退成首页 HTML（200、text/html）。
 /sitemap.xml

@@ -16,7 +16,7 @@ const today = () => new Date().toLocaleDateString('sv-SE');
 const ALL = '__all';
 const STARTER_ID = 'ZRrEQnww';
 const STARTER_SHORT = 'https://lists.domibuddy.com/l/ZRrEQnww';
-const STARTER_PAGE = '/en/watchlists/english-starter-ages-3-6/';
+const starterPage = () => `${db.settings.lang === 'zh' ? '/zh' : '/en'}/watchlists/english-starter-ages-3-6/`;
 const EVENTS_API = 'https://api.domibuddy.com/v1/events';
 // TODO: privacy.html must not claim try_watchlist / first_playback_started until POST /v1/events ships.
 function eventPage() {
@@ -645,7 +645,7 @@ function emptyHome() {
       <section class="path-card path-starter">
         <h2>${t('pathStarterTitle')}</h2>
         <p>${t('pathStarterBody')}</p>
-        <a class="btn starter-btn" data-track="try_watchlist" data-source="app_browse_starter" href="${STARTER_PAGE}">${t('pathStarterCta')}</a>
+        <a class="btn starter-btn" data-track="try_watchlist" data-source="app_browse_starter" href="${starterPage()}">${t('pathStarterCta')}</a>
         <a class="join-link" href="#/join">${t('pathJoin')}</a>
       </section>
     </div>
@@ -1745,7 +1745,7 @@ async function renderImport(code, listId) {
   if (listId) rememberPublicList(listId);
   if (!list || !list.videos.length) {
     app.innerHTML = topbar() + `<main class="wrap rest"><div class="big">${domi('idle', 100, t('domiName'))}</div><h1>${t('importBad')}</h1><p class="hint">${t('importBadNext')}</p>
-      <div class="row" style="justify-content:center"><a class="btn primary" data-track="try_watchlist" data-source="import_fail_starter" href="${STARTER_PAGE}">${t('pathStarterCta')}</a><a class="btn" href="#/parent/add">${t('pathAddTitle')}</a></div></main>`;
+      <div class="row" style="justify-content:center"><a class="btn primary" data-track="try_watchlist" data-source="import_fail_starter" href="${starterPage()}">${t('pathStarterCta')}</a><a class="btn" href="#/parent/add">${t('pathAddTitle')}</a></div></main>`;
     bindTopbar();
     bindTrack(app);
     return;
@@ -1869,7 +1869,7 @@ function paneLibrary(el) {
       <h2>${t('noVideos')}</h2>
       <div class="row" style="justify-content:center">
         <a class="btn primary" href="#/parent/add">${t('pathAddCta')}</a>
-        <a class="btn" data-track="try_watchlist" data-source="library_browse_starter" href="${STARTER_PAGE}">${t('pathStarterCta')}</a>
+        <a class="btn" data-track="try_watchlist" data-source="library_browse_starter" href="${starterPage()}">${t('pathStarterCta')}</a>
       </div>
     </div>`;
     bindTrack(el);
@@ -1894,8 +1894,9 @@ function paneLibrary(el) {
     $('#ls').hidden = !m.size;
     if (!m.size) libSeries = ALL;
     $('#ls').innerHTML = `<option value="${ALL}">${t('allSeries')}</option>`
-      + [...m].sort((a, b) => a[1].title.localeCompare(b[1].title, 'zh')).map(([id, x]) => `<option value="${esc(id)}" ${id === libSeries ? 'selected' : ''}>${esc(x.title)} (${x.n})</option>`).join('')
-      + (loose ? `<option value="${NONE}" ${libSeries === NONE ? 'selected' : ''}>${t('noSeries')} (${loose})</option>` : '');
+      + [...m].sort((a, b) => a[1].title.localeCompare(b[1].title, 'zh')).map(([id, x]) => `<option value="${esc(id)}">${esc(x.title)} (${x.n})</option>`).join('')
+      + (loose ? `<option value="${NONE}">${t('noSeries')} (${loose})</option>` : '');
+    if ([...$('#ls').options].some((o) => o.value === libSeries)) $('#ls').value = libSeries;
   };
   const drawGroups = () => {
     // 分组保留（空分组显示 0），只更新数量
@@ -2006,9 +2007,20 @@ function paneLibrary(el) {
     if (!name) return;
     const made = assignCollection(videos, name);
     sel.clear();
+    q = '';
+    const search = $('#lq');
+    if (search) search.value = '';
+    libGroup = ALL;
+    libCreator = ALL;
     libSeries = made.id;
     save();
     refresh();
+    const ls = $('#ls');
+    if (ls) {
+      ls.hidden = false;
+      ls.value = made.id;
+    }
+    $('#col-hint')?.scrollIntoView({ block: 'nearest' });
     toast(t('makeCollectionDone', made.name));
   };
   $('#col-rename').onclick = async () => {
