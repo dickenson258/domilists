@@ -105,6 +105,37 @@ function pruneSeriesCovers() {
   const ids = new Set(db.videos.map((v) => v.series?.id));
   for (const id of Object.keys(db.seriesCovers)) if (!ids.has(id)) delete db.seriesCovers[id];
 }
+// Parent-made collections. The parent- prefix stays out of platform cover lookup
+// (yt-…, bili-season-…, bili-series-…, bili-pages-…). Share still packs sr: [id, title, index].
+function parentSeriesId() {
+  return 'parent-' + uid();
+}
+function seriesMembers(id) {
+  return db.videos.filter((v) => v.series?.id === id).sort((a, b) => (a.series.index - b.series.index) || String(a.id).localeCompare(String(b.id)));
+}
+function reindexSeries(id) {
+  seriesMembers(id).forEach((v, i) => { v.series.index = i; });
+}
+function assignCollection(videos, title) {
+  const oldIds = new Set(videos.map((v) => v.series?.id).filter(Boolean));
+  const id = parentSeriesId();
+  const name = title.trim().slice(0, 80);
+  videos.forEach((v, i) => { v.series = { id, title: name, index: i }; });
+  oldIds.forEach((old) => { if (old !== id) reindexSeries(old); });
+  pruneSeriesCovers();
+  return { id, name };
+}
+function moveEpisode(v, dir) {
+  const members = seriesMembers(v.series?.id);
+  const i = members.findIndex((x) => x.id === v.id);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= members.length) return false;
+  const next = members.slice();
+  const [item] = next.splice(i, 1);
+  next.splice(j, 0, item);
+  next.forEach((m, k) => { m.series.index = k; });
+  return true;
+}
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(db)); } catch { toast(t('storageFail')); }
   S.onSaved();
@@ -334,8 +365,13 @@ function route() {
   if (page === 'pair') return renderPair(arg || pendingPairCode, !!pendingPairCode && !arg);
   if (page === 'parent') {
     if (!parentUnlocked) {
+      const dest = arg || 'add';
       location.hash = '#/';
-      unlockParent().then((ok) => ok && (location.hash = '#/parent/' + (arg || 'add')));
+      // The hash reset routes again and closes dialogs. Open the PIN after that.
+      setTimeout(() => {
+        if (parentUnlocked) return;
+        unlockParent().then((ok) => { if (ok && !location.hash.startsWith('#/parent')) location.hash = '#/parent/' + dest; });
+      }, 0);
       return;
     }
     return renderParent(arg || 'add');
@@ -1473,6 +1509,29 @@ function confirmBox({ title, body, ok, danger = true, extra = [] }) {
     mask?.addEventListener('click', (e) => e.target === mask && finish(false));
   });
 }
+function askText({ title, label, hint = '', value = '', ok }) {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (v) => { if (done) return; done = true; close(); resolve(v); };
+    const close = modal(`<h2>${title}</h2>${hint ? `<p class="hint">${hint}</p>` : ''}<label class="share-label">${label}<input class="field" id="ask-text" maxlength="80" value="${esc(value)}"></label>
+      <div class="row confirm-acts"><button class="btn" data-a="no">${t('cancel')}</button><button class="btn primary" data-a="yes">${ok}</button></div>`, (dlg) => {
+      const input = $('#ask-text', dlg);
+      input.focus();
+      input.select();
+      dlg.onclick = (e) => {
+        const b = e.target.closest('button');
+        if (!b) return;
+        if (b.dataset.a === 'no') return finish(null);
+        if (b.dataset.a !== 'yes') return;
+        const name = input.value.trim();
+        if (!name) return input.focus();
+        finish(name);
+      };
+      input.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); dlg.querySelector('[data-a="yes"]').click(); } };
+    });
+    $('#modal-root .mask')?.addEventListener('click', (e) => e.target.classList.contains('mask') && finish(null));
+  });
+}
 function exportBackup() {
   const blob = new Blob([JSON.stringify({ app: 'KidsTube', version: 1, groups: db.groups, videos: db.videos, seriesCovers: db.seriesCovers }, null, 2)], { type: 'application/json' });
   const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `kidstube-backup-${today()}.json` });
@@ -1857,15 +1916,33 @@ function paneLibrary(el) {
     $('#delsel').textContent = t('delSelected', sel.size);
     $('#delsel').disabled = !sel.size;
     $('#delall').disabled = !!libSharedIds || !db.videos.length;
+    const make = $('#makecol');
+    if (make) make.disabled = sel.size < 2;
+    const viewing = libSeries !== ALL && libSeries !== NONE && seriesMembers(libSeries).length > 0;
+    if ($('#dissolve')) $('#dissolve').hidden = !viewing;
+    if ($('#col-hint')) $('#col-hint').hidden = !viewing;
   };
   const draw = () => {
     const list = filtered();
-    $('#libbody').innerHTML = list.map((v) => `<tr data-id="${v.id}" class="${sel.has(v.id) ? 'on' : ''}">
+    if (libSeries !== ALL && libSeries !== NONE) list.sort((a, b) => (a.series?.index ?? 0) - (b.series?.index ?? 0));
+    const pos = new Map();
+    for (const v of db.videos) {
+      if (!v.series) continue;
+      const arr = pos.get(v.series.id) || [];
+      arr.push(v);
+      pos.set(v.series.id, arr);
+    }
+    for (const arr of pos.values()) arr.sort((a, b) => a.series.index - b.series.index);
+    $('#libbody').innerHTML = list.map((v) => {
+      const members = v.series ? pos.get(v.series.id) || [] : [];
+      const at = members.findIndex((x) => x.id === v.id);
+      return `<tr data-id="${v.id}" class="${sel.has(v.id) ? 'on' : ''}">
       <td class="thumb-cell" style="width:120px"><label class="chk" title="${t('select')}"><input type="checkbox" data-sel ${sel.has(v.id) ? 'checked' : ''}></label>${v.thumb ? `<img src="${esc(v.thumb)}" referrerpolicy="no-referrer" loading="lazy" alt="">` : ''}</td>
       <td><div class="title-edit"><div class="t" contenteditable="true" data-f="title" title="${t('editTitle')}">${esc(v.title)}</div><span class="edit-hint" title="${esc(t('editTitle'))}">✎</span></div>
-        <div class="s">${esc(v.author || '')} · ${esc(platName(v.platform))}${v.series ? ` · <button class="link-btn" data-series="${esc(v.series.id)}" title="${t('renameSeries')}">${ICON.folder(13)} ${esc(v.series.title)} ✎</button> ${t('epOfN', epNo(v), seriesEps(v.series.id).length)}` : ''} · <a href="${esc(v.url)}" target="_blank" rel="noopener">${t('original')}</a></div></td>
+        <div class="s">${esc(v.author || '')} · ${esc(platName(v.platform))}${v.series ? ` · <button class="link-btn" data-series="${esc(v.series.id)}" title="${t('renameSeries')}">${ICON.folder(13)} ${esc(v.series.title)} ✎</button> ${t('epOfN', at + 1, members.length)}` : ''} · <a href="${esc(v.url)}" target="_blank" rel="noopener">${t('original')}</a></div></td>
       <td><select data-f="group">${db.groups.map((g) => `<option ${g === v.group ? 'selected' : ''}>${esc(g)}</option>`).join('')}</select></td>
-      <td class="acts">${v.series && R.coverUrl(v.thumb) ? `<button class="btn small" data-series-cover>${t(seriesCover(v.series.id).custom === R.coverUrl(v.thumb) ? 'seriesCoverAuto' : 'seriesCoverPick')}</button>` : ''}${canHaveCreator(v) ? `<button class="btn small" data-more>${t('moreFromCreator')}</button>` : ''}<button class="btn danger small" data-del>${t('del')}</button></td></tr>`).join('') || `<tr><td colspan="4" class="hint">${t('noVideos')}</td></tr>`;
+      <td class="acts">${v.series ? `<span class="ep-order"><button type="button" class="btn small" data-up aria-label="${t('moveUp')}" ${at <= 0 ? 'disabled' : ''}>↑</button><button type="button" class="btn small" data-down aria-label="${t('moveDown')}" ${at < 0 || at >= members.length - 1 ? 'disabled' : ''}>↓</button></span><button type="button" class="btn small" data-unseries>${t('removeFromCollection')}</button>` : ''}${v.series && R.coverUrl(v.thumb) ? `<button class="btn small" data-series-cover>${t(seriesCover(v.series.id).custom === R.coverUrl(v.thumb) ? 'seriesCoverAuto' : 'seriesCoverPick')}</button>` : ''}${canHaveCreator(v) ? `<button class="btn small" data-more>${t('moreFromCreator')}</button>` : ''}<button class="btn danger small" data-del>${t('del')}</button></td></tr>`;
+    }).join('') || `<tr><td colspan="4" class="hint">${t('noVideos')}</td></tr>`;
     drawBulk();
   };
   // 视频库有变化（删除 / 改分组）后：总数、分组数量、博主列表、列表、批量按钮全部重新计算
@@ -1900,9 +1977,11 @@ function paneLibrary(el) {
     <div class="row lib-actions">
       <button class="btn small" id="selall"></button><button class="btn small" id="selnone">${t('selectNone')}</button>
       <button class="btn primary small" id="share">${ICON.share(16)} ${t('shareList')}</button>
+      <button class="btn small" id="makecol" type="button">${t('makeCollection')}</button>
       <button class="btn small" id="newg">${t('manageGroups')}</button>
       <div class="spacer"></div>
-      <span class="lib-danger"><button class="btn danger small" id="delsel"></button><button class="btn danger small" id="delall" style="${libSharedIds ? 'display:none' : ''}">${t('clearAll')}</button></span></div>
+      <span class="lib-danger"><button class="btn danger small" id="dissolve" type="button" hidden>${t('dissolveCollection')}</button><button class="btn danger small" id="delsel"></button><button class="btn danger small" id="delall" style="${libSharedIds ? 'display:none' : ''}">${t('clearAll')}</button></span></div>
+    <div class="hint collection-tools" id="col-hint" hidden>${t('collectionOrderHint')} <button type="button" class="btn small" id="col-rename">${t('renameCollection')}</button></div>
     <div class="table-wrap"><table class="lib"><tbody id="libbody"></tbody></table></div></div>`;
   if (libGroup !== ALL && !db.groups.includes(libGroup)) libGroup = ALL;
   if ($('#nudge-export')) $('#nudge-export').onclick = () => { exportBackup(); db.settings.backupNudgeAt = Date.now(); save(); };
@@ -1920,6 +1999,41 @@ function paneLibrary(el) {
   };
   $('#lc').onchange = (e) => { libCreator = e.target.value; libSeries = ALL; drawSeries(); draw(); };
   $('#ls').onchange = (e) => { libSeries = e.target.value; draw(); };
+  $('#makecol').onclick = async () => {
+    const videos = [...sel].map((id) => db.videos.find((v) => v.id === id)).filter(Boolean);
+    if (videos.length < 2) return toast(t('makeCollectionNeed'));
+    const name = await askText({ title: t('makeCollection'), label: t('seriesName'), hint: t('makeCollectionHint'), ok: t('makeCollection') });
+    if (!name) return;
+    const made = assignCollection(videos, name);
+    sel.clear();
+    libSeries = made.id;
+    save();
+    refresh();
+    toast(t('makeCollectionDone', made.name));
+  };
+  $('#col-rename').onclick = async () => {
+    if (libSeries === ALL || libSeries === NONE) return;
+    const cur = seriesMembers(libSeries)[0]?.series.title || '';
+    const name = await askText({ title: t('renameCollection'), label: t('seriesName'), value: cur, ok: t('save') });
+    if (!name || name === cur) return;
+    seriesMembers(libSeries).forEach((v) => { v.series.title = name.slice(0, 80); });
+    save();
+    refresh();
+    toast(t('seriesRenamed', name));
+  };
+  $('#dissolve').onclick = async () => {
+    if (libSeries === ALL || libSeries === NONE) return;
+    const members = seriesMembers(libSeries);
+    if (!members.length) return;
+    const title = members[0].series.title;
+    if (!(await confirmBox({ title: t('dissolveTitle'), body: t('dissolveBody', title, members.length), ok: t('dissolveOk') }))) return;
+    members.forEach((v) => { delete v.series; });
+    pruneSeriesCovers();
+    libSeries = ALL;
+    save();
+    refresh();
+    toast(t('dissolveDone'));
+  };
   const byRow = (e) => db.videos.find((x) => x.id === e.target.closest('tr')?.dataset.id);
   $('#lq').oninput = (e) => { q = e.target.value.trim().toLowerCase(); draw(); };
   $('#libbody').addEventListener('change', (e) => {
@@ -1942,6 +2056,23 @@ function paneLibrary(el) {
     if (title && title !== v.title) { v.title = title; save(); toast(t('titleUpdated')); }
   });
   $('#libbody').addEventListener('click', (e) => {
+    if (e.target.matches('[data-up],[data-down]')) {
+      const v = byRow(e);
+      if (!v?.series || e.target.disabled) return;
+      if (moveEpisode(v, e.target.matches('[data-up]') ? -1 : 1)) { save(); draw(); }
+      return;
+    }
+    if (e.target.matches('[data-unseries]')) {
+      const v = byRow(e);
+      if (!v?.series) return;
+      const id = v.series.id;
+      delete v.series;
+      reindexSeries(id);
+      pruneSeriesCovers();
+      save();
+      refresh();
+      return toast(t('removedFromCollection'));
+    }
     if (e.target.matches('[data-more]')) return openCreatorOf(byRow(e), e.target);
     if (e.target.matches('[data-series-cover]')) {
       const v = byRow(e);

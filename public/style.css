@@ -487,7 +487,11 @@ button, a, .card, .pick { -webkit-tap-highlight-color: transparent; }
 .acc[open] > summary::after { transform: rotate(-135deg); margin-top: 4px; }
 .acc-body { padding: 0 22px 18px; }
 .more-player { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 8px; }
-.lib-danger { display: inline-flex; gap: 8px; margin-inline-start: 24px; }
+.lib-danger { display: inline-flex; gap: 8px; margin-inline-start: 24px; flex-wrap: wrap; }
+.ep-order { display: inline-flex; gap: 4px; margin-inline-end: 4px; }
+.ep-order .btn { min-width: 32px; padding: 6px 8px; }
+.collection-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn[hidden], .collection-tools[hidden] { display: none !important; }
 .lib-empty { text-align: center; }
 .lib-empty .big { display: flex; justify-content: center; }
 .title-edit { display: flex; align-items: flex-start; gap: 6px; }
