@@ -31,4 +31,33 @@
     <xhtml:link rel="alternate" hreflang="en" href="https://lists.domibuddy.com/en/watchlists/english-starter-ages-3-6/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://lists.domibuddy.com/en/watchlists/english-starter-ages-3-6/"/>
   </url>
+  <url>
+    <loc>https://lists.domibuddy.com/en/watchlists/toddler-watchlist-ages-2-4/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://lists.domibuddy.com/en/watchlists/toddler-watchlist-ages-2-4/"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://lists.domibuddy.com/zh/watchlists/toddler-watchlist-ages-2-4/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://lists.domibuddy.com/en/watchlists/toddler-watchlist-ages-2-4/"/>
+  </url>
+  <url>
+    <loc>https://lists.domibuddy.com/zh/watchlists/toddler-watchlist-ages-2-4/</loc>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://lists.domibuddy.com/zh/watchlists/toddler-watchlist-ages-2-4/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://lists.domibuddy.com/en/watchlists/toddler-watchlist-ages-2-4/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://lists.domibuddy.com/en/watchlists/toddler-watchlist-ages-2-4/"/>
+  </url>
+  <url>
+    <loc>https://lists.domibuddy.com/en/watchlists/picture-book-read-alouds/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://lists.domibuddy.com/en/watchlists/picture-book-read-alouds/"/>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://lists.domibuddy.com/zh/watchlists/picture-book-read-alouds/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://lists.domibuddy.com/en/watchlists/picture-book-read-alouds/"/>
+  </url>
+  <url>
+    <loc>https://lists.domibuddy.com/zh/watchlists/picture-book-read-alouds/</loc>
+    <xhtml:link rel="alternate" hreflang="zh" href="https://lists.domibuddy.com/zh/watchlists/picture-book-read-alouds/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://lists.domibuddy.com/en/watchlists/picture-book-read-alouds/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://lists.domibuddy.com/en/watchlists/picture-book-read-alouds/"/>
+  </url>
+  <url>
+    <loc>https://lists.domibuddy.com/en/guides/youtube-kids-alternative/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://lists.domibuddy.com/en/guides/youtube-kids-alternative/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://lists.domibuddy.com/en/guides/youtube-kids-alternative/"/>
+  </url>
 </urlset>

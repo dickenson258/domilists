@@ -17,7 +17,7 @@
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="icon" href="/icon.svg" type="image/svg+xml" />
   <script type="application/ld+json">
-  {
+{
   "@context": "https://schema.org",
   "@graph": [
     {
@@ -110,6 +110,59 @@
           "item": "https://lists.domibuddy.com/zh/watchlists/english-starter-ages-3-6/"
         }
       ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "英文入门片单里有什么？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "116 个来自官方频道的 YouTube 视频，分成 7 个合集和 1 首儿歌：Numberblocks（15）、Alphablocks（17）、Wonderblocks（20）、Maddie's Do You Know?（18）、SciShow Kids 花园科学（16）和天气（11）、Storyline Online 绘本朗读（18），以及儿歌 Walking in the Jungle。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "刚开始学英语的孩子适合看吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "这些视频用学前语速的英语口播，Numberblocks 和 Alphablocks 有很多画面。SciShow Kids 合集里的一些科学词，初学的孩子可能没听过。适不适合你的孩子，由你判断，保存后也可以删掉任何一个合集。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "每集有多长？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "大多数是 3 到 7 分钟。Storyline Online 的绘本朗读大约 5 到 12 分钟。整份片单约 9 小时 48 分，适合每次看一小段。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "免费吗，需要账号吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "免费，不需要账号。保存后，片单会在这台设备的浏览器里留一份副本。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "保存之后可以修改吗？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "可以。在家长区可以删除视频、调整合集顺序或改名，也可以粘贴你自己的 YouTube 或 Bilibili 链接。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "我保存过以前那份 5 个视频的入门片单。再保存这一份会怎样？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "你已经有的视频会被跳过，所以会补上这份片单里其余的视频，不会重复。你之前保存的视频仍留在片库原来的位置，不会被挪进新的合集。"
+          }
+        }
+      ]
     }
   ]
 }
@@ -163,7 +216,18 @@
       h1 { font-size: 26px; }
       .cta .btn.primary { width: 100%; }
     }
-</style>
+
+    .faq { margin: 28px 0 8px; }
+    .faq h2 { font-size: 22px; margin: 0 0 14px; }
+    .faq details { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); margin: 0 0 10px; }
+    .faq summary { cursor: pointer; font-weight: 700; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; list-style: none; }
+    .faq summary::-webkit-details-marker { display: none; }
+    .faq summary::after { content: ""; flex: 0 0 auto; width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg) translateY(-2px); }
+    .faq details[open] summary::after { transform: rotate(225deg) translateY(-1px); }
+    .faq details p { margin: 0; padding: 0 16px 16px; }
+    .slogan { color: var(--muted); font-size: 14px; margin: -8px 0 18px; }
+    summary:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+  </style>
 </head>
 <body>
   <header class="topbar">
@@ -179,7 +243,7 @@
   <main class="wrap">
     <nav class="crumb" aria-label="面包屑"><a href="/zh/">朵米片单</a> / <span>3 到 6 岁英文启蒙</span></nav>
     <h1>3–6 岁英文启蒙入门片单：7 个合集和 1 首儿歌</h1>
-    <p class="lead">这是一份更完整的英文入门片单，给想和 3 到 6 岁的孩子一起看英文视频的家庭。里面有 7 个家长整理的合集，加上 1 首儿歌，一共 116 个视频：Numberblocks、Alphablocks、Wonderblocks、Maddie's Do You Know?、两组 SciShow Kids、Storyline Online 的绘本朗读，以及 Walking in the Jungle。年龄和英语程度是否合适，由你来判断。你可以在朵米片单里保存这份片单，之后再添加或删除视频。不需要账号。</p>
+    <p class="lead">这是一份免费的英文片单，给 3 到 6 岁的孩子：116 个 YouTube 视频，分成 7 个合集和 1 首儿歌，一共约 9 小时 48 分。内容包括 Numberblocks 的数字、Alphablocks 的字母和自然拼读、Wonderblocks 的编程入门、Maddie's Do You Know? 和 SciShow Kids 的日常科学，以及 Storyline Online 朗读的绘本。适不适合孩子的年龄和英语程度，由你判断。可以保存到朵米片单，不需要账号，保存后还能增删视频。</p>
     <div class="cta"><a class="btn primary" href="https://lists.domibuddy.com/l/NXfOJ8S7">保存为我的片单</a></div>
     <article class="col">
       <div class="col-top">
@@ -299,6 +363,33 @@
       <h2>保存之后</h2>
       <p>保存之后，这份片单会在你的设备上留一份副本。你可以添加或删除视频，再让孩子在孩子模式里看。家长区由你设置的密码保护。不需要账号。</p>
       <div class="cta"><a class="btn primary" href="https://lists.domibuddy.com/l/NXfOJ8S7">保存为我的片单</a></div>
+      <section class="faq" id="faq">
+      <h2>常见问题</h2>
+      <details open>
+        <summary>英文入门片单里有什么？</summary>
+        <p>116 个来自官方频道的 YouTube 视频，分成 7 个合集和 1 首儿歌：Numberblocks（15）、Alphablocks（17）、Wonderblocks（20）、Maddie's Do You Know?（18）、SciShow Kids 花园科学（16）和天气（11）、Storyline Online 绘本朗读（18），以及儿歌 Walking in the Jungle。</p>
+      </details>
+      <details>
+        <summary>刚开始学英语的孩子适合看吗？</summary>
+        <p>这些视频用学前语速的英语口播，Numberblocks 和 Alphablocks 有很多画面。SciShow Kids 合集里的一些科学词，初学的孩子可能没听过。适不适合你的孩子，由你判断，保存后也可以删掉任何一个合集。</p>
+      </details>
+      <details>
+        <summary>每集有多长？</summary>
+        <p>大多数是 3 到 7 分钟。Storyline Online 的绘本朗读大约 5 到 12 分钟。整份片单约 9 小时 48 分，适合每次看一小段。</p>
+      </details>
+      <details>
+        <summary>免费吗，需要账号吗？</summary>
+        <p>免费，不需要账号。保存后，片单会在这台设备的浏览器里留一份副本。</p>
+      </details>
+      <details>
+        <summary>保存之后可以修改吗？</summary>
+        <p>可以。在家长区可以删除视频、调整合集顺序或改名，也可以粘贴你自己的 YouTube 或 Bilibili 链接。</p>
+      </details>
+      <details>
+        <summary>我保存过以前那份 5 个视频的入门片单。再保存这一份会怎样？</summary>
+        <p>你已经有的视频会被跳过，所以会补上这份片单里其余的视频，不会重复。你之前保存的视频仍留在片库原来的位置，不会被挪进新的合集。</p>
+      </details>
+    </section>
       <h2>关于这份片单</h2>
       <p>这份片单由一位爸爸兼独立开发者整理。标题、频道和时长来自制作这份片单时使用的 YouTube 页面。</p>
       <p>如果链接失效，请在 GitHub 上提一个 issue：<a href="https://github.com/dickenson258/domilists/issues">https://github.com/dickenson258/domilists/issues</a></p>

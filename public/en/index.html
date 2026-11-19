@@ -17,22 +17,79 @@
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="icon" href="/icon.svg" type="image/svg+xml" />
   <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebApplication",
-    "name": "Domi Lists",
-    "alternateName": "朵米片单",
-    "url": "https://lists.domibuddy.com/en/",
-    "applicationCategory": "UtilitiesApplication",
-    "operatingSystem": "Web",
-    "inLanguage": "en",
-    "offers": {
-      "@type": "Offer",
-      "price": "0",
-      "priceCurrency": "USD"
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "name": "Domi Lists",
+      "alternateName": "朵米片单",
+      "url": "https://lists.domibuddy.com/en/",
+      "applicationCategory": "UtilitiesApplication",
+      "operatingSystem": "Web",
+      "inLanguage": "en",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "description": "Domi Lists is a free web app for parents to build and share video watchlists for their children. Start with a sample list, save it on your device, and add or remove videos. No account is required. YouTube and Bilibili work right away. Some other sites need an optional helper. Videos play in their original YouTube or Bilibili players, which may show ads or platform controls."
     },
-    "description": "Domi Lists is a free web app for parents to build and share video watchlists for their children. Start with a sample list, save it on your device, and add or remove videos. No account is required. YouTube and Bilibili work right away. Some other sites need an optional helper. Videos play in their original YouTube or Bilibili players, which may show ads or platform controls."
-  }
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is Domi Lists?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Domi Lists, or 朵米片单 in Chinese, is a free web app for parents to build and share video watchlists for their children. You add YouTube or Bilibili links, or start from a ready-made list, and your child watches only the videos you saved."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Domi Lists free, and do I need an account?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Domi Lists is free and does not require an account. Family sync across devices is optional."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which video sites does it work with?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "YouTube and Bilibili work right away. Some other sites need an optional helper."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Will my child see ads?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Videos play in their original YouTube or Bilibili players, which may show ads or platform controls."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Where is my list stored?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Your list and settings stay in this browser on this device. If you share a list, its video IDs, titles and collection names are stored on our server to make the short link. If you turn on family sync, the list is encrypted and uploaded so your other devices can use it."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I keep my child in their list?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Your child watches in kids mode, which shows only the videos you saved. The parent area, where you add or remove videos, is protected by a PIN you set. You can also set a daily watch-time limit."
+          }
+        }
+      ]
+    }
+  ]
+}
   </script>
   <style>
     :root {
@@ -86,6 +143,17 @@
       .topbar { flex-wrap: wrap; }
       .logo span { font-size: 18px; }
     }
+  
+    .faq { margin: 28px 0 8px; }
+    .faq h2 { font-size: 22px; margin: 0 0 14px; }
+    .faq details { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); margin: 0 0 10px; }
+    .faq summary { cursor: pointer; font-weight: 700; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; list-style: none; }
+    .faq summary::-webkit-details-marker { display: none; }
+    .faq summary::after { content: ""; flex: 0 0 auto; width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg) translateY(-2px); }
+    .faq details[open] summary::after { transform: rotate(225deg) translateY(-1px); }
+    .faq details p { margin: 0; padding: 0 16px 16px; }
+    .slogan { color: var(--muted); font-size: 14px; margin: -8px 0 18px; }
+    summary:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
   </style>
 </head>
 <body>
@@ -103,7 +171,8 @@
     <section class="hero">
       <div>
         <h1>A free web app for the videos you pick</h1>
-        <p class="blurb">Build a kids watchlist from YouTube and Bilibili. Free, no account.</p>
+        <p class="blurb">Domi Lists (朵米片单) is a free web app where parents build a video watchlist for their child from YouTube and Bilibili links, and the child watches only those videos in kids mode. No account is needed, and you can share a list with another family by link.</p>
+        <p class="slogan">Build a kids watchlist from YouTube and Bilibili. Free, no account.</p>
         <a class="btn primary" href="/en/watchlists/english-starter-ages-3-6/">Try the English starter list for ages 3 to 6</a>
       </div>
       <figure class="preview">
@@ -202,6 +271,33 @@
       <p>The list and settings stay in this browser unless you turn on family sync or share a list. Family sync is optional, and it is free during a limited beta with 500 trial spots.</p>
       <p>You can also set a daily watch-time limit in the parent area.</p>
       <p class="closing">See the <a href="/en/watchlists/english-starter-ages-3-6/">English starter watchlist for ages 3 to 6</a>, then save it and change it as you like.</p>
+    </section>
+    <section class="faq" id="faq">
+      <h2>Frequently asked questions</h2>
+      <details open>
+        <summary>What is Domi Lists?</summary>
+        <p>Domi Lists, or 朵米片单 in Chinese, is a free web app for parents to build and share video watchlists for their children. You add YouTube or Bilibili links, or start from a ready-made list, and your child watches only the videos you saved.</p>
+      </details>
+      <details>
+        <summary>Is Domi Lists free, and do I need an account?</summary>
+        <p>Domi Lists is free and does not require an account. Family sync across devices is optional.</p>
+      </details>
+      <details>
+        <summary>Which video sites does it work with?</summary>
+        <p>YouTube and Bilibili work right away. Some other sites need an optional helper.</p>
+      </details>
+      <details>
+        <summary>Will my child see ads?</summary>
+        <p>Videos play in their original YouTube or Bilibili players, which may show ads or platform controls.</p>
+      </details>
+      <details>
+        <summary>Where is my list stored?</summary>
+        <p>Your list and settings stay in this browser on this device. If you share a list, its video IDs, titles and collection names are stored on our server to make the short link. If you turn on family sync, the list is encrypted and uploaded so your other devices can use it.</p>
+      </details>
+      <details>
+        <summary>How do I keep my child in their list?</summary>
+        <p>Your child watches in kids mode, which shows only the videos you saved. The parent area, where you add or remove videos, is protected by a PIN you set. You can also set a daily watch-time limit.</p>
+      </details>
     </section>
   </main>
   <footer>

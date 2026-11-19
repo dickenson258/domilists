@@ -1,0 +1,34 @@
+# Domi Lists (朵米片单)
+
+> Domi Lists is a free web app for parents to build and share video watchlists for their children. Parents add YouTube or Bilibili links, or start from a ready-made list, and save it on their device. No account is required. The child watches in kids mode, which shows only the saved videos, and the parent area is protected by a PIN. YouTube and Bilibili work right away. Some other sites need an optional helper. Videos play in their original YouTube or Bilibili players, which may show ads or platform controls.
+
+Key facts:
+- Price: free. No account needed. Optional family sync across devices.
+- Lists and settings are stored in the browser on the device. Sharing a list stores its public contents (video IDs, titles, collection names) on the server to create a short link.
+- Parents can set a daily watch-time limit.
+- Made by a dad and indie developer. Open source under the MIT license.
+- Site: https://lists.domibuddy.com
+
+## About the product
+
+- [Domi Lists (English)](https://lists.domibuddy.com/en/): what Domi Lists is, who it is for and how it works
+- [朵米片单（中文）](https://lists.domibuddy.com/zh/): the same page in Chinese
+- [Privacy policy](https://lists.domibuddy.com/privacy): what is stored on the device and what is sent when sharing or syncing
+
+## Ready-made watchlists
+
+- [English starter watchlist, ages 3 to 6](https://lists.domibuddy.com/en/watchlists/english-starter-ages-3-6/): 116 YouTube videos in 7 collections and 1 song (Numberblocks, Alphablocks, Wonderblocks, Maddie's Do You Know?, SciShow Kids, Storyline Online)
+- [3–6 岁英文启蒙入门片单](https://lists.domibuddy.com/zh/watchlists/english-starter-ages-3-6/): the same list described in Chinese
+- [Toddler watchlist, ages 2 to 4](https://lists.domibuddy.com/en/watchlists/toddler-watchlist-ages-2-4/): 61 YouTube videos in 4 collections: action songs, nursery rhymes and routine songs, Bluey episodes, bedtime songs
+- [Picture book read-alouds](https://lists.domibuddy.com/en/watchlists/picture-book-read-alouds/): 22 Storyline Online read-alouds in 2 collections, sorted by length
+- [2–4 岁幼儿英文片单](https://lists.domibuddy.com/zh/watchlists/toddler-watchlist-ages-2-4/): the toddler list described in Chinese
+- [英文绘本朗读片单](https://lists.domibuddy.com/zh/watchlists/picture-book-read-alouds/): the picture book list described in Chinese
+
+## Guides
+
+- [Looking for a YouTube Kids alternative?](https://lists.domibuddy.com/en/guides/youtube-kids-alternative/): compares YouTube Kids, supervised accounts, YouTube playlists and Domi Lists, with setup steps
+
+## Optional
+
+- [Source code on GitHub](https://github.com/dickenson258/domilists): MIT-licensed source; report broken links in Issues
+- [Open the app](https://lists.domibuddy.com/): the web app itself

@@ -24,7 +24,16 @@ http
     else if (fs.existsSync(file) && fs.statSync(file).isDirectory()) {
       const idx = path.join(file, 'index.html');
       file = fs.existsSync(idx) ? idx : path.join(PUBLIC, 'index.html');
-    } else if (!fs.existsSync(file)) file = path.join(PUBLIC, 'index.html');
+    } else if (!fs.existsSync(file)) {
+      // Static files such as /llms.txt must not fall through to the SPA homepage.
+      const ext = path.extname(pathname);
+      if (ext && ext !== '.html') {
+        res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
+        res.end('Not found');
+        return;
+      }
+      file = path.join(PUBLIC, 'index.html');
+    }
     res.writeHead(200, { 'content-type': MIME[path.extname(file)] || 'application/octet-stream' });
     fs.createReadStream(file).pipe(res);
   })

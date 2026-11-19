@@ -17,7 +17,7 @@
   <meta name="twitter:card" content="summary_large_image" />
   <link rel="icon" href="/icon.svg" type="image/svg+xml" />
   <script type="application/ld+json">
-  {
+{
   "@context": "https://schema.org",
   "@graph": [
     {
@@ -110,6 +110,59 @@
           "item": "https://lists.domibuddy.com/en/watchlists/english-starter-ages-3-6/"
         }
       ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is in the English starter watchlist?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "116 YouTube videos from official channels in 7 collections and 1 song: Numberblocks (15), Alphablocks (17), Wonderblocks (20), Maddie's Do You Know? (18), SciShow Kids garden science (16) and weather (11), Storyline Online read-alouds (18), and the song Walking in the Jungle."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is it suitable for a child who is just starting English?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The videos use spoken English at a preschool pace, and Numberblocks and Alphablocks show a lot visually. Some science words in the SciShow Kids collections may be new to a beginner. You decide what fits your child, and you can remove any collection after saving."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How long are the episodes?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Most are 3 to 7 minutes. The Storyline Online read-alouds run about 5 to 12 minutes. The whole list is about 9 hours 48 minutes, so it is meant to be watched a little at a time."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is it free, and do I need an account?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, it is free, and no account is required. Saving puts a copy of the list in your browser on this device."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I change the list after saving it?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. In the parent area you can remove videos, reorder or rename collections, and paste in your own YouTube or Bilibili links."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "I saved the earlier 5-video starter list. What happens if I save this one?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Videos you already have are skipped, so the rest of this list is added and nothing is duplicated. Videos you saved earlier stay where they were in your library and do not move into the new collections."
+          }
+        }
+      ]
     }
   ]
 }
@@ -163,7 +216,18 @@
       h1 { font-size: 26px; }
       .cta .btn.primary { width: 100%; }
     }
-</style>
+
+    .faq { margin: 28px 0 8px; }
+    .faq h2 { font-size: 22px; margin: 0 0 14px; }
+    .faq details { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); margin: 0 0 10px; }
+    .faq summary { cursor: pointer; font-weight: 700; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; list-style: none; }
+    .faq summary::-webkit-details-marker { display: none; }
+    .faq summary::after { content: ""; flex: 0 0 auto; width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg) translateY(-2px); }
+    .faq details[open] summary::after { transform: rotate(225deg) translateY(-1px); }
+    .faq details p { margin: 0; padding: 0 16px 16px; }
+    .slogan { color: var(--muted); font-size: 14px; margin: -8px 0 18px; }
+    summary:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+  </style>
 </head>
 <body>
   <header class="topbar">
@@ -179,7 +243,7 @@
   <main class="wrap">
     <nav class="crumb" aria-label="Breadcrumb"><a href="/en/">Domi Lists</a> / <span>English starter ages 3 to 6</span></nav>
     <h1>An English Starter Watchlist for Ages 3–6: Seven Collections and a Song</h1>
-    <p class="lead">This is a fuller English starter for families who want to try English-language videos with a child aged 3 to 6. It has 7 parent-made collections and 1 song, 116 videos in all: Numberblocks, Alphablocks, Wonderblocks, Maddie's Do You Know?, two SciShow Kids collections, Storyline Online read-alouds, and Walking in the Jungle. You decide whether the age range and English level are right for your child. You can save the list in Domi Lists and add or remove videos afterwards. No account is required.</p>
+    <p class="lead">This is a free English watchlist for children aged 3 to 6: 116 YouTube videos in 7 collections and 1 song, about 9 hours 48 minutes in all. It covers numbers with Numberblocks, letters and phonics with Alphablocks, first coding ideas with Wonderblocks, everyday science with Maddie's Do You Know? and SciShow Kids, and picture books read aloud by Storyline Online. You decide whether the age range and English level are right for your child. Save it in Domi Lists with no account, then add or remove videos.</p>
     <div class="cta"><a class="btn primary" href="https://lists.domibuddy.com/l/NXfOJ8S7">Save as my watchlist</a></div>
     <article class="col">
       <div class="col-top">
@@ -299,6 +363,33 @@
       <h2>After you save</h2>
       <p>Saving puts a copy of this list on your device. You can add or remove videos, then let your child watch in kids mode. The parent area is protected by a PIN you set. No account is required.</p>
       <div class="cta"><a class="btn primary" href="https://lists.domibuddy.com/l/NXfOJ8S7">Save as my watchlist</a></div>
+      <section class="faq" id="faq">
+      <h2>Frequently asked questions</h2>
+      <details open>
+        <summary>What is in the English starter watchlist?</summary>
+        <p>116 YouTube videos from official channels in 7 collections and 1 song: Numberblocks (15), Alphablocks (17), Wonderblocks (20), Maddie's Do You Know? (18), SciShow Kids garden science (16) and weather (11), Storyline Online read-alouds (18), and the song Walking in the Jungle.</p>
+      </details>
+      <details>
+        <summary>Is it suitable for a child who is just starting English?</summary>
+        <p>The videos use spoken English at a preschool pace, and Numberblocks and Alphablocks show a lot visually. Some science words in the SciShow Kids collections may be new to a beginner. You decide what fits your child, and you can remove any collection after saving.</p>
+      </details>
+      <details>
+        <summary>How long are the episodes?</summary>
+        <p>Most are 3 to 7 minutes. The Storyline Online read-alouds run about 5 to 12 minutes. The whole list is about 9 hours 48 minutes, so it is meant to be watched a little at a time.</p>
+      </details>
+      <details>
+        <summary>Is it free, and do I need an account?</summary>
+        <p>Yes, it is free, and no account is required. Saving puts a copy of the list in your browser on this device.</p>
+      </details>
+      <details>
+        <summary>Can I change the list after saving it?</summary>
+        <p>Yes. In the parent area you can remove videos, reorder or rename collections, and paste in your own YouTube or Bilibili links.</p>
+      </details>
+      <details>
+        <summary>I saved the earlier 5-video starter list. What happens if I save this one?</summary>
+        <p>Videos you already have are skipped, so the rest of this list is added and nothing is duplicated. Videos you saved earlier stay where they were in your library and do not move into the new collections.</p>
+      </details>
+    </section>
       <h2>About this list</h2>
       <p>This list was put together by a dad and indie developer. Titles, channels, and durations come from the YouTube pages used to build the list.</p>
       <p>If a link is broken, please open an issue on GitHub: <a href="https://github.com/dickenson258/domilists/issues">https://github.com/dickenson258/domilists/issues</a></p>
