@@ -790,11 +790,186 @@ function watchYouTube(box, onEnded) {
   return () => window.removeEventListener('message', onMsg);
 }
 
+// 通过显式查询参数启用，供正式站和本机试用。
+const youtubePlayerPreview = ['lists.domibuddy.com', 'localhost', '127.0.0.1', '[::1]'].includes(location.hostname)
+  && new URLSearchParams(location.search).get('youtubePlayer') === 'preview';
+
+async function youtubePreviewAspect(videoId) {
+  const [first, second] = await Promise.all(['oar2', 'oar1'].map((name) => new Promise((resolve) => {
+    const image = new Image();
+    const finish = (aspect) => {
+      clearTimeout(timer);
+      image.onload = image.onerror = null;
+      resolve(aspect);
+    };
+    const timer = setTimeout(() => finish(null), 1800);
+    image.onload = () => finish(image.naturalWidth >= 180 && image.naturalHeight >= 180
+      ? image.naturalWidth / image.naturalHeight : null);
+    image.onerror = () => finish(null);
+    image.src = `https://i.ytimg.com/vi/${encodeURIComponent(videoId)}/${name}.jpg`;
+  })));
+  // 两张原比例缩略图不一致时，交给 YouTube 在常规尺寸内原比例显示。
+  if (first && second && Math.abs(first - second) > .02) return null;
+  return first || second;
+}
+
+function mountYouTubePreview(box, v, onEnded) {
+  const src = new URL(embedUrl(v));
+  for (const [key, value] of Object.entries({ controls: '0', disablekb: '1', cc_load_policy: '1', cc_lang_pref: 'en' })) {
+    src.searchParams.set(key, value);
+  }
+  const en = db.settings.lang !== 'zh';
+  const label = (zh, english) => en ? english : zh;
+  box.innerHTML = `<div class="yt-preview">
+    <div class="yt-preview-frame"><iframe id="yt-preview-embed" title="${esc(v.title)}" tabindex="-1" src="${esc(src.href)}"
+      allow="autoplay; encrypted-media; storage-access" referrerpolicy="strict-origin-when-cross-origin"
+      ${sandboxOn('youtube') ? 'sandbox="allow-scripts allow-same-origin allow-presentation allow-storage-access-by-user-activation"' : ''}></iframe></div>
+    <button type="button" class="yt-preview-center" disabled></button>
+    <div class="yt-preview-controls" role="group" aria-label="${label('播放控制', 'Playback controls')}">
+      <input type="range" class="yt-preview-seek" min="0" max="0" step="1" value="0" aria-label="${label('播放进度', 'Playback progress')}" disabled>
+      <span class="yt-preview-time">0:00 / 0:00</span>
+      <input type="range" class="yt-preview-volume" min="0" max="100" value="100" aria-label="${label('音量', 'Volume')}" disabled>
+      <select aria-label="${label('播放速度', 'Playback speed')}" disabled><option value="1">1×</option></select>
+    </div>
+    <div class="yt-preview-status" role="status">${t('loading')}</div>
+  </div>`;
+  const root = $('.yt-preview', box);
+  const frame = $('.yt-preview-frame', root);
+  const iframe = $('iframe', root);
+  const play = $('.yt-preview-center', root);
+  const seek = $('.yt-preview-seek', root);
+  const time = $('.yt-preview-time', root);
+  const volume = $('.yt-preview-volume', root);
+  const rate = $('select', root);
+  const status = $('.yt-preview-status', root);
+  let player, timer, readyTimeout, unmountNative;
+  let active = true, ready = false, playing = false, ended = false, scrubbing = false;
+  let lastProgress = -1;
+
+  void youtubePreviewAspect(v.vid).then((aspect) => {
+    if (!active || !root.isConnected || !aspect) return;
+    frame.style.setProperty('--yt-aspect', aspect);
+    frame.dataset.fit = aspect < 1 ? 'portrait' : 'landscape';
+  });
+
+  const syncButton = () => {
+    const name = ended ? t('replay') : playing ? label('暂停', 'Pause') : label('播放', 'Play');
+    play.setAttribute('aria-label', name);
+    play.textContent = ended ? '↻' : playing ? '❚❚' : '▶';
+    play.classList.toggle('is-replay', ended);
+    root.classList.toggle('playing', playing);
+  };
+  const syncTime = () => {
+    const duration = Math.floor(player.getDuration() || 0);
+    const current = ended ? duration : Math.min(duration, Math.floor(player.getCurrentTime() || 0));
+    seek.max = duration;
+    seek.disabled = !duration;
+    if (scrubbing) return;
+    seek.value = current;
+    time.textContent = `${fmtTime(current)} / ${fmtTime(duration)}`;
+    if (!ended && duration && current !== lastProgress) {
+      lastProgress = current;
+      box.dispatchEvent(new CustomEvent('kt-time', { detail: { t: current, d: duration } }));
+    }
+  };
+  const dispose = () => {
+    active = false;
+    clearTimeout(readyTimeout);
+    clearInterval(timer);
+    player?.destroy();
+    player = null;
+  };
+  const fallback = (reason) => {
+    if (!active || !root.isConnected) return;
+    console.warn('YouTube preview:', reason);
+    dispose();
+    unmountNative = mountIframe(box, v, onEnded);
+  };
+
+  syncButton();
+  play.onclick = () => {
+    if (playing) player.pauseVideo();
+    else {
+      if (ended) {
+        ended = false;
+        player.seekTo(0, true);
+        syncButton();
+      }
+      player.playVideo();
+    }
+  };
+  seek.oninput = () => {
+    scrubbing = true;
+    time.textContent = `${fmtTime(Number(seek.value))} / ${fmtTime(Number(seek.max))}`;
+  };
+  seek.onchange = () => {
+    ended = false;
+    scrubbing = false;
+    player.seekTo(Number(seek.value), true);
+    syncButton();
+  };
+  seek.onblur = () => { scrubbing = false; };
+  volume.oninput = () => {
+    player.setVolume(Number(volume.value));
+    if (Number(volume.value) && player.isMuted()) player.unMute();
+  };
+  rate.onchange = () => player.setPlaybackRate(Number(rate.value));
+
+  readyTimeout = setTimeout(() => fallback('player ready timeout'), 15000);
+  const apiLoaded = window.YT?.Player ? Promise.resolve() : loadScript('https://www.youtube.com/iframe_api');
+  apiLoaded.then(() => {
+    window.YT.ready(() => {
+      if (!active || !root.isConnected) return;
+      player = new window.YT.Player(iframe, { events: {
+        onReady: () => {
+          if (!active || !root.isConnected) return;
+          clearTimeout(readyTimeout);
+          ready = true;
+          status.hidden = true;
+          play.disabled = volume.disabled = false;
+          volume.value = player.isMuted() ? 0 : player.getVolume();
+          syncTime();
+          timer = setInterval(syncTime, 350);
+        },
+        onStateChange: ({ data }) => {
+          if (!ready || !active || !root.isConnected) return;
+          playing = data === 1;
+          if (data === 0 && !ended) {
+            ended = true;
+            box.dispatchEvent(new CustomEvent('kt-time', { detail: { t: Infinity, d: 1 } }));
+            onEnded?.();
+          }
+          if (playing) {
+            ended = false;
+            const rates = player.getAvailablePlaybackRates();
+            rate.replaceChildren(...rates.map((speed) => new Option(speed + '×', speed)));
+            rate.value = player.getPlaybackRate();
+            rate.disabled = rates.length < 2;
+          }
+          syncButton();
+          syncTime();
+          box.dispatchEvent(new Event('kt-state'));
+        },
+        onPlaybackRateChange: ({ data }) => { rate.value = data; },
+        onError: ({ data }) => fallback(data),
+      } });
+    });
+  }).catch(fallback);
+
+  return () => {
+    dispose();
+    unmountNative?.();
+  };
+}
+
 function openExternal(url, w = 1100, h = 720) {
   window.open(url, 'kidstube_ext', `popup,width=${w},height=${h}`);
 }
 
 async function mountPlayer(box, v, onEnded) {
+  if (youtubePlayerPreview && v.platform === 'youtube' && v.playType === 'iframe') {
+    return mountYouTubePreview(box, v, onEnded);
+  }
   // B 站：装了助手就用朵米片单自己的播放器（手机 Firefox 也能播、没有 B 站推荐、能自动播放下一集），取不到再用嵌入播放器
   if (v.platform === 'bilibili' && v.playType === 'iframe' && db.settings.biliNative !== false) {
     box.innerHTML = `<div class="msg"><div class="spin"></div><div>${t('loading')}</div></div>`;
