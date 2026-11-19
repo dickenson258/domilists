@@ -1446,8 +1446,8 @@ function paneAdd(el) {
   el.innerHTML = `<div class="panel">
     <h2>${t('addTitle')}</h2>
     <p class="hint">${t('addHintShort')}</p>
-    <div class="row"><input class="field grow" id="url" placeholder="${t('addPlaceholder')}" autocomplete="off">
-      <select class="field" id="grp" style="width:auto">${groupOptions(lastGroup || db.groups[0])}</select><button class="btn primary" id="go">${t('parse')}</button></div>
+    <div class="add-video-fields"><input class="field" id="url" placeholder="${t('addPlaceholder')}" autocomplete="off">
+      <select class="field" id="grp">${groupOptions(lastGroup || db.groups[0])}</select><button class="btn primary" id="go">${t('parse')}</button></div>
     <div class="platforms">${['youtube', 'bilibili'].map(badge).join('')}</div>
     <details class="more-sites"><summary>${t('moreSites')}</summary>
       <div class="platforms">${['vimeo', 'iqiyi'].map(badge).join('')}<span class="plat-other">${t('directLink')}</span>${['qq', 'youku', 'baidupan'].map(badge).join('')}</div>

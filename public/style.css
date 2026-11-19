@@ -121,6 +121,12 @@ img { display: block; }
 .field:focus { border-color: var(--brand); }
 textarea.field { min-height: 70px; resize: vertical; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
 .grow { flex: 1; min-width: 200px; }
+.add-video-fields {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, min(36%, 14rem)) auto;
+  gap: 10px; align-items: center;
+}
+.add-video-fields .field { min-width: 0; }
+.add-video-fields select { text-overflow: ellipsis; }
 label.inline { display: inline-flex; gap: 8px; align-items: center; cursor: pointer; }
 .platforms { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .platforms span { font-size: 12px; padding: 3px 10px; border-radius: 999px; color: #fff; font-weight: 600; }
@@ -181,6 +187,8 @@ label.inline { display: inline-flex; gap: 8px; align-items: center; cursor: poin
 }
 @media (max-width: 560px) {
   .wrap { padding: 14px 16px; }
+  .add-video-fields { grid-template-columns: minmax(0, 1fr) auto; }
+  .add-video-fields input { grid-column: 1 / -1; }
   .topbar { padding: 10px 16px; }
   .logo span { display: none; }
   .grid { grid-template-columns: 1fr 1fr; gap: 12px; }
