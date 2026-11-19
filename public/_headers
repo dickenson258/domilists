@@ -34,10 +34,34 @@
   Cache-Control: public, max-age=0, must-revalidate, no-transform
 /zh/watchlists/english-starter-ages-3-6/index.html
   Cache-Control: public, max-age=0, must-revalidate, no-transform
+/en/watchlists/toddler-watchlist-ages-2-4/
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
+/en/watchlists/toddler-watchlist-ages-2-4/index.html
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
+/zh/watchlists/toddler-watchlist-ages-2-4/
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
+/zh/watchlists/toddler-watchlist-ages-2-4/index.html
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
+/en/watchlists/picture-book-read-alouds/
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
+/en/watchlists/picture-book-read-alouds/index.html
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
+/zh/watchlists/picture-book-read-alouds/
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
+/zh/watchlists/picture-book-read-alouds/index.html
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
+/en/guides/youtube-kids-alternative/
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
+/en/guides/youtube-kids-alternative/index.html
+  Cache-Control: public, max-age=0, must-revalidate, no-transform
 
-# 真实静态文件。没有这两个文件时，Pages 对未知路径回退成首页 HTML（200、text/html）。
+# 真实静态文件。没有这些文件时，Pages 对未知路径回退成首页 HTML（200、text/html）。
 /sitemap.xml
   Content-Type: application/xml; charset=utf-8
 
 /robots.txt
   Content-Type: text/plain; charset=utf-8
+
+/llms.txt
+  Content-Type: text/plain; charset=utf-8
+  Cache-Control: public, max-age=0, must-revalidate, no-transform

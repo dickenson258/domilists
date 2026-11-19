@@ -16,11 +16,19 @@ const ESBUILD = ['--yes', 'esbuild@0.24.0'];
 rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });
 cpSync(SRC, OUT, { recursive: true });
-// public/ 整目录复制。sitemap 和 robots 必须作为独立文件进 dist/，否则托管方会把未知路径回退成首页 HTML。
-for (const f of ['sitemap.xml', 'robots.txt']) {
+// public/ 整目录复制。sitemap、robots、llms.txt 必须作为独立文件进 dist/，
+// 否则托管方会把未知路径回退成首页 HTML（/llms.txt 会变成 SPA 的 index.html）。
+for (const f of ['sitemap.xml', 'robots.txt', 'llms.txt']) {
   const text = readFileSync(join(OUT, f), 'utf8');
-  const marker = f === 'sitemap.xml' ? '<loc>https://lists.domibuddy.com/</loc>' : 'Sitemap: https://lists.domibuddy.com/sitemap.xml';
+  const marker = {
+    'sitemap.xml': '<loc>https://lists.domibuddy.com/en/watchlists/toddler-watchlist-ages-2-4/</loc>',
+    'robots.txt': 'Sitemap: https://lists.domibuddy.com/sitemap.xml',
+    'llms.txt': '# Domi Lists (朵米片单)',
+  }[f];
   if (!text.includes(marker)) throw new Error(`dist/${f} was not copied from public/`);
+  if (f === 'llms.txt' && (/<html/i.test(text) || text.includes('#/import/') || text.includes('/l/'))) {
+    throw new Error('dist/llms.txt must stay plain text content URLs, not the SPA or import links');
+  }
 }
 
 const run = (args) => execFileSync('npx', [...ESBUILD, ...args], { cwd: ROOT, stdio: ['ignore', 'inherit', 'inherit'] });
