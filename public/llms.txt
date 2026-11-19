@@ -1,9 +1,9 @@
 # Domi Lists (朵米片单)
 
-> Domi Lists is a free web app for parents to build and share video watchlists for their children. Parents add YouTube or Bilibili links, or start from a ready-made list, and save it on their device. No account is required. The child watches in kids mode, which shows only the saved videos, and the parent area is protected by a PIN. YouTube and Bilibili work right away. Some other sites need an optional helper. Videos play in their original YouTube or Bilibili players, which may show ads or platform controls.
+> Domi Lists is a web app for parents to build and share video watchlists for their children. Parents add YouTube or Bilibili links, or start from a ready-made list, and save it on their device. No account is required. The child watches in kids mode, which shows only the saved videos, and the parent area is protected by a PIN. YouTube and Bilibili work right away. Some other sites need an optional helper. Videos play in their original YouTube or Bilibili players, which may show ads or platform controls.
 
 Key facts:
-- Price: free. No account needed. Optional family sync across devices.
+- Price: Free to use, no account needed. Optional family sync will be a paid feature later.
 - Lists and settings are stored in the browser on the device. Sharing a list stores its public contents (video IDs, titles, collection names) on the server to create a short link.
 - Parents can set a daily watch-time limit.
 - Made by a dad and indie developer. Open source under the MIT license.

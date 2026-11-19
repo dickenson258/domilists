@@ -4,13 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>YouTube Kids Alternative: How to Show Your Child Only Videos You Picked</title>
-  <meta name="description" content="Want your child to watch only videos you chose? Compare YouTube Kids, supervised accounts, YouTube playlists and Domi Lists, a free hand-picked watchlist with no account, with step-by-step setup." />
+  <meta name="description" content="Want your child to watch only videos you chose? Compare YouTube Kids, supervised accounts, YouTube playlists and Domi Lists, a hand-picked watchlist. Free to use, no account needed. Optional family sync will be a paid feature later., with step-by-step setup." />
   <link rel="canonical" href="https://lists.domibuddy.com/en/guides/youtube-kids-alternative/" />
   <link rel="alternate" hreflang="en" href="https://lists.domibuddy.com/en/guides/youtube-kids-alternative/" />
   <link rel="alternate" hreflang="x-default" href="https://lists.domibuddy.com/en/guides/youtube-kids-alternative/" />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="YouTube Kids Alternative: How to Show Your Child Only Videos You Picked" />
-  <meta property="og:description" content="Want your child to watch only videos you chose? Compare YouTube Kids, supervised accounts, YouTube playlists and Domi Lists, a free hand-picked watchlist with no account, with step-by-step setup." />
+  <meta property="og:description" content="Want your child to watch only videos you chose? Compare YouTube Kids, supervised accounts, YouTube playlists and Domi Lists, a hand-picked watchlist. Free to use, no account needed. Optional family sync will be a paid feature later., with step-by-step setup." />
   <meta property="og:url" content="https://lists.domibuddy.com/en/guides/youtube-kids-alternative/" />
   <meta property="og:image" content="https://lists.domibuddy.com/share-card.png" />
   <meta name="twitter:card" content="summary_large_image" />
@@ -26,7 +26,7 @@
       "inLanguage": "en",
       "datePublished": "2026-11-19",
       "dateModified": "2026-11-19",
-      "description": "Want your child to watch only videos you chose? Compare YouTube Kids, supervised accounts, YouTube playlists and Domi Lists, a free hand-picked watchlist with no account, with step-by-step setup.",
+      "description": "Want your child to watch only videos you chose? Compare YouTube Kids, supervised accounts, YouTube playlists and Domi Lists, a hand-picked watchlist. Free to use, no account needed. Optional family sync will be a paid feature later., with step-by-step setup.",
       "author": {
         "@type": "Person",
         "name": "a dad and indie developer"
@@ -79,7 +79,7 @@
           "name": "What is a good alternative to YouTube Kids for toddlers?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "If you want your toddler to see only videos you chose, you can use YouTube Kids with \"Approve content yourself\", or a hand-picked watchlist such as Domi Lists, which is free and needs no account. In YouTube Kids you can approve single videos or whole channels, but you can't build your own list or put episodes in order. YouTube Kids shows YouTube videos only. In Domi Lists you can put episodes in order and mix YouTube and Bilibili."
+            "text": "If you want your toddler to see only videos you chose, you can use YouTube Kids with \"Approve content yourself\", or a hand-picked watchlist such as Domi Lists. Free to use, no account needed. Optional family sync will be a paid feature later. In YouTube Kids you can approve single videos or whole channels, but you can't build your own list or put episodes in order. YouTube Kids shows YouTube videos only. In Domi Lists you can put episodes in order and mix YouTube and Bilibili."
           }
         },
         {
@@ -95,7 +95,7 @@
           "name": "Is Domi Lists free?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes. Domi Lists is free and does not require an account. Family sync is optional."
+            "text": "Free to use, no account needed. Optional family sync will be a paid feature later."
           }
         },
         {
@@ -186,9 +186,24 @@
     .faq details, .fold { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); margin: 0 0 10px; }
     .faq summary, .fold summary { padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; list-style: none; }
     .faq details p, .fold .fold-body { margin: 0; padding: 0 16px 16px; }
-    .compare { min-width: 880px; }
-    .compare th { background: var(--surface-2); font-size: 13px; }
-    .compare td, .compare th { font-size: 13px; }
+    .compare { width: 100%; min-width: 0; table-layout: fixed; }
+    .compare th:first-child { width: 32%; }
+    .compare th { background: var(--surface-2); font-size: 12px; line-height: 1.3; }
+    .compare thead th { text-align: center; }
+    .compare tbody th { text-align: left; background: transparent; font-size: 14px; }
+    .compare td { text-align: center; font-weight: 700; font-size: 18px; }
+    .compare sup { font-size: 11px; font-weight: 700; }
+    .footnotes { margin: 10px 0 0; padding-left: 1.2em; font-size: 14px; }
+    .footnotes li { margin: 0 0 6px; }
+    @media (max-width: 720px) {
+      .compare, .compare thead, .compare tbody, .compare tr, .compare th, .compare td { display: block; width: auto; }
+      .compare { table-layout: auto; }
+      .compare thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+      .compare tr { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; border-top: 1px solid var(--line); padding: 12px 0; }
+      .compare tbody th { grid-column: 1 / -1; border: 0; padding: 0; background: transparent; }
+      .compare td { border: 0; text-align: left; font-size: 18px; padding: 0; }
+      .compare td::before { content: attr(data-col); display: block; font-size: 12px; font-weight: 700; color: var(--muted); line-height: 1.3; }
+    }
     .step-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 8px 0 16px; }
     .step-card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px; }
     .step-no { width: 28px; height: 28px; border-radius: 50%; background: var(--brand); color: var(--brand-ink); display: grid; place-items: center; font-weight: 800; margin-bottom: 8px; }
@@ -223,31 +238,37 @@
     <nav class="crumb" aria-label="Breadcrumb"><a href="/en/">Domi Lists</a> / <span>YouTube Kids alternative</span></nav>
     <h1>Looking for a YouTube Kids Alternative? Four Ways to Show Your Child Only Videos You Picked</h1>
     <p class="byline">By a dad and indie developer · Updated 19 November 2026</p>
-    <p class="lead">If you want your child to see only videos you chose, YouTube Kids and Domi Lists work differently. With YouTube Kids set to "Approve content yourself", you can approve single videos or whole channels, but you can't build your own list or put episodes in order. YouTube Kids shows YouTube videos only. Domi Lists is free, needs no account, and lets you build a hand-picked list in your own order from YouTube and Bilibili. Choose YouTube Kids if your family already uses Google accounts and the YouTube Kids app. Choose Domi Lists if you want a list you can order and share, without signing in.</p>
+    <p class="lead">If you want your child to see only videos you chose, YouTube Kids and Domi Lists work differently. With YouTube Kids set to "Approve content yourself", you can approve single videos or whole channels, but you can't build your own list or put episodes in order. YouTube Kids shows YouTube videos only. Domi Lists lets you build a hand-picked list in your own order from YouTube and Bilibili. Free to use, no account needed. Optional family sync will be a paid feature later. Choose YouTube Kids if your family already uses Google accounts and the YouTube Kids app. Choose Domi Lists if you want a list you can order and share, without signing in.</p>
     <p class="disclosure"><em>Domi Lists is made by the author of this guide. We have tried to describe every option fairly.</em></p>
     <section class="panel">
       <h2>The four common approaches</h2>
       <div class="table-wrap"><table class="compare">
           <thead><tr>
             <th scope="col"></th>
-            <th scope="col">YouTube Kids, age setting (Preschool, Younger or Older)</th>
-            <th scope="col">YouTube Kids, "Approve content yourself"</th>
-            <th scope="col">Supervised account on main YouTube</th>
-            <th scope="col">A playlist you make on YouTube</th>
+            <th scope="col">YouTube Kids age setting</th>
+            <th scope="col">Approve content yourself</th>
+            <th scope="col">Supervised account</th>
+            <th scope="col">YouTube playlist</th>
             <th scope="col">Domi Lists</th>
           </tr></thead>
           <tbody>
-            <tr><th scope="row">Who picks the videos</th><td>YouTube's systems, by age setting</td><td>You</td><td>YouTube's systems, by content setting</td><td>You</td><td>You</td></tr>
-            <tr><th scope="row">Build your own list, in your order</th><td>No</td><td>No. Approve single videos or channels</td><td>No</td><td>Yes</td><td>Yes, including collections that play episodes in order</td></tr>
-            <tr><th scope="row">Can the child search</th><td>Yes, unless you turn search off</td><td>No</td><td>Yes</td><td>Yes, the playlist opens in regular YouTube</td><td>No. Kids mode shows only your saved videos</td></tr>
-            <tr><th scope="row">Account needed</th><td>Optional</td><td>Yes, a parent Google account</td><td>Yes, a Google account for the child, managed by a parent</td><td>Yes, to create the playlist</td><td>No</td></tr>
-            <tr><th scope="row">Where it runs</th><td>YouTube Kids app or website</td><td>YouTube Kids app or website</td><td>Main YouTube app or website</td><td>Main YouTube app or website</td><td>Any web browser</td></tr>
-            <tr><th scope="row">Sources</th><td>YouTube videos only</td><td>YouTube videos only</td><td>YouTube</td><td>YouTube</td><td>YouTube and Bilibili, which you can mix in one list. Some other sites need an optional helper</td></tr>
-            <tr><th scope="row">Time limits</th><td>Built-in timer</td><td>Built-in timer</td><td>Parental controls through Google</td><td>Not built in</td><td>Daily watch-time limit in the parent area</td></tr>
-            <tr><th scope="row">Setup effort</th><td>Low</td><td>Higher: approve single videos or channels</td><td>Medium</td><td>Low to medium</td><td>Medium: add links or save a ready-made list</td></tr>
-            <tr><th scope="row">Share with another family</th><td>Not built in</td><td>Not built in</td><td>Not built in</td><td>Share the playlist link</td><td>Share a list link; the other family saves their own copy</td></tr>
+            <tr><th scope="row">Only videos you picked</th><td data-col="YouTube Kids age setting" aria-label="No">✗</td><td data-col="Approve yourself" aria-label="Yes, see note">✓<sup>*</sup></td><td data-col="Supervised account" aria-label="No">✗</td><td data-col="YouTube playlist" aria-label="No, see note">✗<sup>†</sup></td><td data-col="Domi Lists" aria-label="Yes">✓</td></tr>
+            <tr><th scope="row">Child can't search</th><td data-col="YouTube Kids age setting" aria-label="No, see note">✗<sup>‡</sup></td><td data-col="Approve yourself" aria-label="Yes">✓</td><td data-col="Supervised account" aria-label="No">✗</td><td data-col="YouTube playlist" aria-label="No">✗</td><td data-col="Domi Lists" aria-label="Yes">✓</td></tr>
+            <tr><th scope="row">No account needed</th><td data-col="YouTube Kids age setting" aria-label="Yes, see note">✓<sup>‡</sup></td><td data-col="Approve yourself" aria-label="No">✗</td><td data-col="Supervised account" aria-label="No">✗</td><td data-col="YouTube playlist" aria-label="No">✗</td><td data-col="Domi Lists" aria-label="Yes">✓</td></tr>
+            <tr><th scope="row">Build your own list, in your order</th><td data-col="YouTube Kids age setting" aria-label="No">✗</td><td data-col="Approve yourself" aria-label="No">✗</td><td data-col="Supervised account" aria-label="No">✗</td><td data-col="YouTube playlist" aria-label="Yes">✓</td><td data-col="Domi Lists" aria-label="Yes">✓</td></tr>
+            <tr><th scope="row">Episodes play in order</th><td data-col="YouTube Kids age setting" aria-label="No">✗</td><td data-col="Approve yourself" aria-label="No">✗</td><td data-col="Supervised account" aria-label="No">✗</td><td data-col="YouTube playlist" aria-label="Yes">✓</td><td data-col="Domi Lists" aria-label="Yes">✓</td></tr>
+            <tr><th scope="row">Mix YouTube + Bilibili</th><td data-col="YouTube Kids age setting" aria-label="No">✗</td><td data-col="Approve yourself" aria-label="No">✗</td><td data-col="Supervised account" aria-label="No">✗</td><td data-col="YouTube playlist" aria-label="No">✗</td><td data-col="Domi Lists" aria-label="Yes, see note">✓<sup>§</sup></td></tr>
+            <tr><th scope="row">Daily time limit</th><td data-col="YouTube Kids age setting" aria-label="Yes">✓</td><td data-col="Approve yourself" aria-label="Yes">✓</td><td data-col="Supervised account" aria-label="Yes, see note">✓<sup>‖</sup></td><td data-col="YouTube playlist" aria-label="No">✗</td><td data-col="Domi Lists" aria-label="Yes">✓</td></tr>
+            <tr><th scope="row">Share a list with another family</th><td data-col="YouTube Kids age setting" aria-label="No">✗</td><td data-col="Approve yourself" aria-label="No">✗</td><td data-col="Supervised account" aria-label="No">✗</td><td data-col="YouTube playlist" aria-label="Yes">✓</td><td data-col="Domi Lists" aria-label="Yes">✓</td></tr>
           </tbody>
         </table></div>
+        <ol class="footnotes">
+          <li><sup>*</sup> You approve single videos or whole channels. You cannot build your own list or put episodes in order. YouTube Kids' built-in collections are curated by YouTube, and parents cannot create or reorder them.</li>
+          <li><sup>†</sup> The playlist is videos you chose, and it can play in order, but it opens in regular YouTube, where a child can still search and open other videos.</li>
+          <li><sup>‡</sup> Search is on unless you turn it off. An account is optional.</li>
+          <li><sup>§</sup> YouTube and Bilibili work right away. Some other sites need an optional helper.</li>
+          <li><sup>‖</sup> Time limits are through Google parental controls.</li>
+        </ol>
         <p><a href="https://support.google.com/youtubekids/answer/10938174">YouTube says</a> its systems work to exclude content not suitable for each age setting, and that not all videos have been manually reviewed. With any of these options, videos may show ads or platform controls.</p>
     </section>
     <section class="panel">
@@ -268,7 +289,7 @@
     </section>
     <section class="panel">
       <h2>Option 4: A hand-picked watchlist in Domi Lists</h2>
-      <p>Domi Lists is a free web app for parents to build and share video watchlists for their children. You paste in YouTube or Bilibili links, or start from a ready-made list, and save it on your device. No account is required. Your child watches in kids mode, which shows only the videos you saved, and the parent area is protected by a PIN you set. You can also set a daily watch-time limit.</p>
+      <p>Domi Lists is a web app for parents to build and share video watchlists for their children. Free to use, no account needed. Optional family sync will be a paid feature later. You paste in YouTube or Bilibili links, or start from a ready-made list, and save it on your device. Your child watches in kids mode, which shows only the videos you saved, and the parent area is protected by a PIN you set. You can also set a daily watch-time limit.</p>
       <p>Videos play in their original YouTube or Bilibili players, which may show ads or platform controls. YouTube and Bilibili work right away. Some other sites need an optional helper.</p>
       <p>What to know before you choose it:</p>
       <ul>
@@ -322,7 +343,7 @@
       <h2>Frequently asked questions</h2>
       <details open>
         <summary>What is a good alternative to YouTube Kids for toddlers?</summary>
-        <p>If you want your toddler to see only videos you chose, you can use YouTube Kids with &quot;Approve content yourself&quot;, or a hand-picked watchlist such as Domi Lists, which is free and needs no account. In YouTube Kids you can approve single videos or whole channels, but you can't build your own list or put episodes in order. YouTube Kids shows YouTube videos only. In Domi Lists you can put episodes in order and mix YouTube and Bilibili.</p>
+        <p>If you want your toddler to see only videos you chose, you can use YouTube Kids with &quot;Approve content yourself&quot;, or a hand-picked watchlist such as Domi Lists. Free to use, no account needed. Optional family sync will be a paid feature later. In YouTube Kids you can approve single videos or whole channels, but you can't build your own list or put episodes in order. YouTube Kids shows YouTube videos only. In Domi Lists you can put episodes in order and mix YouTube and Bilibili.</p>
       </details>
       <details>
         <summary>Can I make YouTube show my child only videos I picked?</summary>
@@ -330,7 +351,7 @@
       </details>
       <details>
         <summary>Is Domi Lists free?</summary>
-        <p>Yes. Domi Lists is free and does not require an account. Family sync is optional.</p>
+        <p>Free to use, no account needed. Optional family sync will be a paid feature later.</p>
       </details>
       <details>
         <summary>Do Domi Lists videos have ads?</summary>
