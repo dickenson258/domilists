@@ -14,8 +14,8 @@ const esc = (s = '') => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const today = () => new Date().toLocaleDateString('sv-SE');
 const ALL = '__all';
-const STARTER_ID = 'ZRrEQnww';
-const STARTER_SHORT = 'https://lists.domibuddy.com/l/ZRrEQnww';
+const STARTER_ID = 'NXfOJ8S7';
+const STARTER_SHORT = 'https://lists.domibuddy.com/l/NXfOJ8S7';
 const starterPage = () => `${db.settings.lang === 'zh' ? '/zh' : '/en'}/watchlists/english-starter-ages-3-6/`;
 const EVENTS_API = 'https://api.domibuddy.com/v1/events';
 // TODO: privacy.html must not claim try_watchlist / first_playback_started until POST /v1/events ships.
