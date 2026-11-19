@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Domi Lists: a free parent-picked video list for kids</title>
+  <meta name="description" content="Domi Lists (朵米片单) is a free web app for parents to build and share kids' video watchlists. No account needed. YouTube and Bilibili work right away. Start with an English starter list for ages 3 to 6." />
+  <link rel="canonical" href="https://lists.domibuddy.com/en/" />
+  <link rel="alternate" hreflang="en" href="https://lists.domibuddy.com/en/" />
+  <link rel="alternate" hreflang="zh" href="https://lists.domibuddy.com/zh/" />
+  <link rel="alternate" hreflang="x-default" href="https://lists.domibuddy.com/en/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Domi Lists: a free parent-picked video list for kids" />
+  <meta property="og:description" content="Domi Lists (朵米片单) is a free web app for parents to build and share kids' video watchlists. No account needed. YouTube and Bilibili work right away. Start with an English starter list for ages 3 to 6." />
+  <meta property="og:url" content="https://lists.domibuddy.com/en/" />
+  <meta property="og:image" content="https://lists.domibuddy.com/share-card.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Domi Lists",
+    "alternateName": "朵米片单",
+    "url": "https://lists.domibuddy.com/en/",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Web",
+    "inLanguage": "en",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "description": "Domi Lists is a free web app for parents to build and share video watchlists for their children. Start with a sample list, save it on your device, and add or remove videos. No account is required. YouTube and Bilibili work right away. Some other sites need an optional helper. Videos play in their original YouTube or Bilibili players, which may show ads or platform controls."
+  }
+  </script>
+  <style>
+    :root {
+      --bg: #fff8ef; --surface: #ffffff; --surface-2: #fff1e0; --text: #2d2a32; --muted: #7a7383;
+      --line: #f0e3d3; --brand: #ff7a59; --brand-ink: #ffffff; --brand-soft: #ffe4d9;
+      --shadow: 0 6px 20px rgba(120, 80, 40, 0.10); --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif; }
+    a { color: var(--brand); }
+    img, svg { display: block; max-width: 100%; }
+    .topbar { display: flex; align-items: center; gap: 16px; padding: 14px 22px; border-bottom: 1px solid var(--line); }
+    .logo { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 22px; color: var(--text); text-decoration: none; letter-spacing: -0.4px; }
+    .logo img { width: 34px; height: 34px; }
+    .spacer { flex: 1; }
+    .nav { display: flex; align-items: center; gap: 18px; }
+    .nav a { color: var(--text); text-decoration: none; font-weight: 600; }
+    .nav a:hover { color: var(--brand); }
+    .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 10px 16px; border-radius: 12px; font-weight: 700; text-decoration: none; }
+    .btn.primary { background: var(--brand); color: var(--brand-ink); border: 1px solid #e86a4c; }
+    .btn.open { background: var(--brand-soft); color: var(--text); border: 1.5px solid #f0c2b2; }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 22px 64px; }
+    .hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 1.05fr); gap: 36px; align-items: center; }
+    h1 { font-size: 44px; line-height: 1.12; letter-spacing: -0.8px; margin: 0 0 14px; }
+    .blurb { font-size: 18px; margin: 0 0 22px; }
+    .hero .btn.primary { min-height: 48px; padding: 12px 18px; font-size: 16px; }
+    .preview { margin: 0; background: var(--surface-2); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px 14px 16px; }
+    .preview figcaption { font-size: 13px; font-weight: 700; color: var(--muted); margin: 2px 4px 10px; }
+    .preview-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .preview-card { background: var(--surface); border-radius: 14px; overflow: hidden; box-shadow: 0 4px 12px rgba(120, 80, 40, 0.08); }
+    .preview-card .art { aspect-ratio: 16 / 10; }
+    .preview-card span { display: block; font-weight: 800; font-size: 13px; padding: 8px 8px 10px; }
+    .tags { display: flex; flex-wrap: wrap; gap: 8px; margin: 28px 0 8px; }
+    .tag { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 700; color: var(--muted); }
+    h2 { font-size: 22px; margin: 36px 0 14px; }
+    .steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+    .step { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px 14px 18px; }
+    .step .ico { width: 36px; height: 36px; border-radius: 12px; background: var(--surface-2); display: grid; place-items: center; margin-bottom: 12px; color: var(--text); }
+    .step h3 { margin: 0 0 6px; font-size: 16px; line-height: 1.35; }
+    .step p { margin: 0; font-size: 14px; color: var(--text); }
+    .read { max-width: 760px; }
+    .read p, .read li { font-size: 16px; }
+    .read h2 { font-size: 20px; }
+    .closing a { font-weight: 800; }
+    footer { border-top: 1px solid var(--line); padding: 22px; text-align: center; color: var(--muted); font-size: 14px; }
+    footer a { color: var(--muted); font-weight: 700; }
+    @media (max-width: 860px) {
+      h1 { font-size: 34px; }
+      .hero, .steps { grid-template-columns: 1fr; }
+      .hero .btn.primary { width: 100%; }
+      .topbar { flex-wrap: wrap; }
+      .logo span { font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="logo" href="/en/"><img src="/icon.svg" alt="" width="34" height="34" /><span>Domi Lists</span></a>
+    <div class="spacer"></div>
+    <nav class="nav" aria-label="Page">
+      <a href="/zh/">中文</a>
+      <a href="/en/watchlists/english-starter-ages-3-6/">Starter list</a>
+      <a href="/privacy">Privacy</a>
+      <a class="btn open" href="/">Open Domi Lists</a>
+    </nav>
+  </header>
+  <main class="wrap">
+    <section class="hero">
+      <div>
+        <h1>A free web app for the videos you pick</h1>
+        <p class="blurb">Build a kids watchlist from YouTube and Bilibili. Free, no account.</p>
+        <a class="btn primary" data-track="try_watchlist" data-source="en_hero" href="/en/watchlists/english-starter-ages-3-6/">Try the English starter list for ages 3 to 6</a>
+      </div>
+      <figure class="preview">
+        <figcaption>Product preview</figcaption>
+        <div class="preview-grid">
+          <div class="preview-card">
+            <svg class="art" viewBox="0 0 160 100" aria-hidden="true">
+              <rect width="160" height="100" fill="#d9e7c8"/>
+              <ellipse cx="78" cy="78" rx="46" ry="16" fill="#7d9a55"/>
+              <path d="M70 78 C40 70 28 48 48 36 C58 48 62 62 70 78Z" fill="#6f8f45"/>
+              <path d="M86 78 C118 68 132 46 112 32 C100 46 94 62 86 78Z" fill="#5f8240"/>
+              <path d="M80 76 C74 52 70 36 80 18 C90 36 86 52 80 76Z" fill="#e07a8a"/>
+              <ellipse cx="80" cy="22" rx="8" ry="10" fill="#f3b3bc"/>
+            </svg>
+            <span>Flower Song</span>
+          </div>
+          <div class="preview-card">
+            <svg class="art" viewBox="0 0 160 100" aria-hidden="true">
+              <rect width="160" height="100" fill="#8fd0ef"/>
+              <circle cx="28" cy="22" r="10" fill="#fff" opacity=".8"/>
+              <circle cx="120" cy="16" r="14" fill="#fff" opacity=".75"/>
+              <rect x="0" y="72" width="160" height="28" fill="#7fbe6a"/>
+              <circle cx="46" cy="78" r="6" fill="#f2a0c0"/><circle cx="78" cy="82" r="5" fill="#f6c453"/><circle cx="112" cy="76" r="6" fill="#8b7ae0"/>
+              <ellipse cx="82" cy="58" rx="28" ry="24" fill="#e0a15a"/>
+              <ellipse cx="58" cy="40" rx="10" ry="14" fill="#e0a15a"/><ellipse cx="106" cy="40" rx="10" ry="14" fill="#e0a15a"/>
+              <ellipse cx="58" cy="40" rx="5" ry="8" fill="#f3c48a"/><ellipse cx="106" cy="40" rx="5" ry="8" fill="#f3c48a"/>
+              <circle cx="72" cy="56" r="3.2" fill="#2d2a32"/><circle cx="92" cy="56" r="3.2" fill="#2d2a32"/>
+              <ellipse cx="82" cy="66" rx="6" ry="4" fill="#c4744a"/>
+              <path d="M64 78 Q82 88 100 78" fill="none" stroke="#2d2a32" stroke-width="2" stroke-linecap="round"/>
+              <path d="M58 70 H106" stroke="#3d8fd4" stroke-width="6" stroke-linecap="round"/>
+            </svg>
+            <span>Cartoon Adventures</span>
+          </div>
+          <div class="preview-card">
+            <svg class="art" viewBox="0 0 160 100" aria-hidden="true">
+              <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd0ea"/><stop offset="1" stop-color="#ffe7c2"/></linearGradient></defs>
+              <rect width="160" height="100" fill="url(#g)"/>
+              <path d="M28 28 v40" stroke="#ff4d6a" stroke-width="4"/>
+              <ellipse cx="40" cy="28" rx="12" ry="8" fill="none" stroke="#ff4d6a" stroke-width="4"/>
+              <circle cx="70" cy="36" r="6" fill="#3d8fd4"/><circle cx="96" cy="24" r="5" fill="#46b36a"/><circle cx="118" cy="40" r="5" fill="#f0a202"/><circle cx="132" cy="58" r="5" fill="#e05aa0"/>
+              <path d="M36 70 Q80 50 140 72" fill="none" stroke="#7eb6ff" stroke-width="3"/>
+              <rect x="108" y="48" width="16" height="28" rx="8" fill="#2d2a32"/>
+              <rect x="112" y="40" width="8" height="12" rx="3" fill="#555"/>
+            </svg>
+            <span>Kids Rhymes</span>
+          </div>
+        </div>
+      </figure>
+    </section>
+
+    <div class="tags" aria-label="Who it is for">
+      <span class="tag">Parents of young kids</span>
+      <span class="tag">YouTube &amp; Bilibili</span>
+      <span class="tag">Ages 3 to 6 starter</span>
+    </div>
+
+    <h2>How it works</h2>
+    <div class="steps">
+      <article class="step">
+        <div class="ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1"/><path d="M14 11a5 5 0 0 0-7.1-.1l-2 2a5 5 0 0 0 7.1 7.1l1.1-1.1"/></svg></div>
+        <h3>Open a starter or paste links</h3>
+        <p>Add YouTube or Bilibili links</p>
+      </article>
+      <article class="step">
+        <div class="ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></div>
+        <h3>Save on this device (PIN)</h3>
+        <p>Protected by a PIN you set</p>
+      </article>
+      <article class="step">
+        <div class="ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="9" r="2.4"/><circle cx="16" cy="9" r="2.4"/><path d="M4.5 18c.6-2.2 2.2-3.4 3.5-3.4S11 15.8 11.6 18"/><path d="M12.4 18c.6-2.2 2.2-3.4 3.5-3.4s2.9 1.2 3.6 3.4"/></svg></div>
+        <h3>Kids mode shows only your list</h3>
+        <p>Only the videos you saved</p>
+      </article>
+      <article class="step">
+        <div class="ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12a8 8 0 1 1-2.2-5.5"/><path d="M20 5v5h-5"/></svg></div>
+        <h3>Add or remove anytime</h3>
+        <p>Change the list when you want</p>
+      </article>
+    </div>
+
+    <section class="read" id="good-to-know">
+      <h2>Good to know</h2>
+      <p>Domi Lists, or 朵米片单 in Chinese, is a free web app for parents to build and share video watchlists for their children. Start with a sample list, save it on your device, and add or remove videos later. No account is required.</p>
+      <p>YouTube and Bilibili work right away. Some other sites need an optional helper. Videos play in their original YouTube or Bilibili players, which may show ads or platform controls.</p>
+      <p>The site is lists.domibuddy.com.</p>
+      <h2>Who it is for</h2>
+      <p>Domi Lists is for parents of young children who want a short list their child can watch. It is a good fit if you already use YouTube or Bilibili, including English-speaking families and Chinese-speaking families living outside China.</p>
+      <p>You judge whether a list suits your child's age and English level. The starter list on this site is meant for ages 3 to 6.</p>
+      <h2>How it works</h2>
+      <ol>
+        <li>Open a starter list, or paste your own YouTube or Bilibili links in the parent area.</li>
+        <li>Save the list on this device. You do not create an account. The parent area is protected by a PIN you set.</li>
+        <li>Your child watches in kids mode, which shows only the videos you saved.</li>
+        <li>You can add or remove videos whenever you want.</li>
+      </ol>
+      <p>The list and settings stay in this browser unless you turn on family sync or share a list. Family sync is optional, and it is free during a limited beta with 500 trial spots.</p>
+      <p>You can also set a daily watch-time limit in the parent area.</p>
+      <p class="closing">See the <a data-track="try_watchlist" data-source="en_closing" href="/en/watchlists/english-starter-ages-3-6/">English starter watchlist for ages 3 to 6</a>, then save it and change it as you like.</p>
+    </section>
+  </main>
+  <footer>
+    <a href="https://lists.domibuddy.com/">lists.domibuddy.com</a>
+    · a dad and indie developer
+    · <a href="/privacy">Privacy</a>
+    · <a href="https://github.com/dickenson258/domilists">GitHub</a>
+  </footer>
+  <script>
+    // First-party only. Fail soft if POST /v1/events is not shipped yet.
+    // Do not describe try_watchlist in privacy.html until that API is live.
+    document.querySelectorAll('[data-track="try_watchlist"]').forEach((el) => {
+      el.addEventListener('click', () => {
+        const body = {
+          event: 'try_watchlist',
+          page: location.origin + location.pathname,
+          source: el.getAttribute('data-source') || 'en',
+          watchlist_id: 'NXfOJ8S7'
+        };
+        try {
+          fetch('https://api.domibuddy.com/v1/events', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(body),
+            keepalive: true
+          }).catch(() => {});
+        } catch {}
+      });
+    });
+  </script>
+</body>
+</html>

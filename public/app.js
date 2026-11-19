@@ -14,6 +14,56 @@ const esc = (s = '') => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const today = () => new Date().toLocaleDateString('sv-SE');
 const ALL = '__all';
+const STARTER_ID = 'NXfOJ8S7';
+const STARTER_SHORT = 'https://lists.domibuddy.com/l/NXfOJ8S7';
+const starterPage = () => `${db.settings.lang === 'zh' ? '/zh' : '/en'}/watchlists/english-starter-ages-3-6/`;
+const EVENTS_API = 'https://api.domibuddy.com/v1/events';
+// TODO: privacy.html must not claim try_watchlist / first_playback_started until POST /v1/events ships.
+function eventPage() {
+  return location.origin + location.pathname;
+}
+function trackEvent(name, { source, watchlistId } = {}) {
+  const body = { event: name, page: eventPage(), source: source || 'app' };
+  if (watchlistId && /^[A-Za-z0-9_-]{4,32}$/.test(watchlistId)) body.watchlist_id = watchlistId;
+  fetch(EVENTS_API, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+    keepalive: true,
+  }).catch(() => {});
+}
+function bindTrack(root = document) {
+  root.querySelectorAll('[data-track="try_watchlist"]').forEach((el) => {
+    el.addEventListener('click', () => trackEvent('try_watchlist', { source: el.dataset.source || 'starter', watchlistId: STARTER_ID }));
+  });
+}
+function rememberPublicList(id) {
+  if (!id || !/^[A-Za-z0-9_-]{4,32}$/.test(id)) return;
+  try { sessionStorage.setItem('domi:publicList', id); } catch {}
+}
+let playbackSent = false;
+function markPlaybackStarted() {
+  if (playbackSent) return;
+  try {
+    if (localStorage.getItem('domi:firstPlayback')) { playbackSent = true; return; }
+    if (sessionStorage.getItem('domi:eventsMissing')) return;
+  } catch {}
+  playbackSent = true;
+  let watchlistId = '';
+  try { watchlistId = sessionStorage.getItem('domi:publicList') || ''; } catch {}
+  const body = { event: 'first_playback_started', page: eventPage(), source: 'player' };
+  if (/^[A-Za-z0-9_-]{4,32}$/.test(watchlistId)) body.watchlist_id = watchlistId;
+  fetch(EVENTS_API, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+    keepalive: true,
+  }).then((r) => {
+    if (r.ok) { try { localStorage.setItem('domi:firstPlayback', '1'); } catch {} return; }
+    playbackSent = false;
+    if (r.status === 404) { try { sessionStorage.setItem('domi:eventsMissing', '1'); } catch {} }
+  }).catch(() => { playbackSent = false; });
+}
 
 // ------------------------------------------------------------ 本地存储
 const KEY = 'kidstube:v1';
@@ -54,6 +104,37 @@ function importSeriesCovers(covers, videos) {
 function pruneSeriesCovers() {
   const ids = new Set(db.videos.map((v) => v.series?.id));
   for (const id of Object.keys(db.seriesCovers)) if (!ids.has(id)) delete db.seriesCovers[id];
+}
+// Parent-made collections. The parent- prefix stays out of platform cover lookup
+// (yt-…, bili-season-…, bili-series-…, bili-pages-…). Share still packs sr: [id, title, index].
+function parentSeriesId() {
+  return 'parent-' + uid();
+}
+function seriesMembers(id) {
+  return db.videos.filter((v) => v.series?.id === id).sort((a, b) => (a.series.index - b.series.index) || String(a.id).localeCompare(String(b.id)));
+}
+function reindexSeries(id) {
+  seriesMembers(id).forEach((v, i) => { v.series.index = i; });
+}
+function assignCollection(videos, title) {
+  const oldIds = new Set(videos.map((v) => v.series?.id).filter(Boolean));
+  const id = parentSeriesId();
+  const name = title.trim().slice(0, 80);
+  videos.forEach((v, i) => { v.series = { id, title: name, index: i }; });
+  oldIds.forEach((old) => { if (old !== id) reindexSeries(old); });
+  pruneSeriesCovers();
+  return { id, name };
+}
+function moveEpisode(v, dir) {
+  const members = seriesMembers(v.series?.id);
+  const i = members.findIndex((x) => x.id === v.id);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= members.length) return false;
+  const next = members.slice();
+  const [item] = next.splice(i, 1);
+  next.splice(j, 0, item);
+  next.forEach((m, k) => { m.series.index = k; });
+  return true;
 }
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(db)); } catch { toast(t('storageFail')); }
@@ -264,6 +345,8 @@ const app = $('#app');
 let cleanup = null;
 let pendingPairCode = null;
 function route() {
+  const modalRoot = $('#modal-root');
+  if (modalRoot) modalRoot.innerHTML = '';
   cleanup?.();
   cleanup = null;
   window.scrollTo(0, 0);
@@ -282,8 +365,13 @@ function route() {
   if (page === 'pair') return renderPair(arg || pendingPairCode, !!pendingPairCode && !arg);
   if (page === 'parent') {
     if (!parentUnlocked) {
+      const dest = arg || 'add';
       location.hash = '#/';
-      unlockParent().then((ok) => ok && (location.hash = '#/parent/' + (arg || 'add')));
+      // The hash reset routes again and closes dialogs. Open the PIN after that.
+      setTimeout(() => {
+        if (parentUnlocked) return;
+        unlockParent().then((ok) => { if (ok && !location.hash.startsWith('#/parent')) location.hash = '#/parent/' + dest; });
+      }, 0);
       return;
     }
     return renderParent(arg || 'add');
@@ -296,16 +384,18 @@ const langBtn = () => `<button class="btn icon-btn lang" id="lang-btn" title="�
 function bindLangBtn() {
   $('#lang-btn').onclick = () => { setLang(db.settings.lang === 'zh' ? 'en' : 'zh'); route(); };
 }
-function topbar(extra = '') {
+function topbar(extra = '', opts = {}) {
+  const parents = opts.parents !== false;
+  const lang = opts.lang !== false;
   return `<header class="topbar">
     <a class="logo" href="#/" aria-label="${esc(t('appName'))}"><img src="icon.svg" alt=""><span>${t('appName')}</span></a>
-    <div class="spacer"></div>${extra}${langBtn()}
-    <button class="btn icon-btn" id="parent-btn" title="${t('parentArea')}" aria-label="${t('parentArea')}">${ICON.lock(20)}</button>
+    <div class="spacer"></div>${extra}${lang ? langBtn() : ''}
+    ${parents ? `<button class="btn parents-pill" id="parent-btn" title="${esc(t('parentArea'))}" aria-label="${esc(t('parentsBtn'))}">${ICON.lock(16)}<span>${t('parentsBtn')}</span></button>` : ''}
   </header>`;
 }
 function bindTopbar() {
-  bindLangBtn();
-  $('#parent-btn').onclick = () => unlockParent().then((ok) => ok && (location.hash = '#/parent/add'));
+  if ($('#lang-btn')) bindLangBtn();
+  if ($('#parent-btn')) $('#parent-btn').onclick = () => unlockParent().then((ok) => ok && (location.hash = '#/parent/add'));
 }
 
 // ------------------------------------------------------------ 儿童首页
@@ -315,7 +405,7 @@ const creatorKey = (v) => (v.authorUrl || `${v.platform}:${v.author || ''}`).toL
 function creatorsOf(list) {
   const map = new Map();
   for (const v of list) {
-    if (!v.author) continue;
+    if (!v.author || isUrlLike(v.author)) continue;
     const k = creatorKey(v);
     const c = map.get(k) || { key: k, name: v.author, count: 0 };
     c.count++;
@@ -354,10 +444,13 @@ function progressBar(v) {
   const p = progressOf(v.id);
   return p && p.d && p.t > 0 ? `<span class="prog"><i style="width:${Math.min(100, Math.round((p.t / p.d) * 100))}%"></i></span>` : '';
 }
+const isUrlLike = (s) => /^https?:\/\//i.test(s || '') || /\b[\w.-]+\.(com|cn|tv|net|org|io)\b/i.test(s || '');
 function videoCard(v, { ep, current } = {}) {
+  const author = v.author && !isUrlLike(v.author) ? v.author : '';
+  const sub = `${ep ? `<b class="ep-tag">${t('epN', ep)}</b> ` : ''}${author ? esc(author) : ''}`;
   return `<a class="card ${current ? 'current' : ''}" href="#/watch/${v.id}">
     <div class="thumb">${thumbImg(v)}<span class="plat plat-${v.platform}">${esc(platName(v.platform))}</span>${v.duration ? `<span class="dur">${esc(v.duration)}</span>` : ''}${progressBar(v)}</div>
-    <div class="body"><div class="title">${esc(v.title)}</div><div class="sub">${ep ? `<b class="ep-tag">${t('epN', ep)}</b> ` : ''}${esc(v.author || '')}</div></div></a>`;
+    <div class="body"><div class="title">${esc(v.title)}</div>${sub.trim() ? `<div class="sub">${sub}</div>` : ''}</div></a>`;
 }
 function seriesCard(series, eps) {
   const first = eps[0];
@@ -418,9 +511,10 @@ function renderHome() {
     .filter((v) => !q || (v.title + v.author).toLowerCase().includes(q));
   const sortMode = homeCreator === ALL ? null : creatorSort(homeCreator);
   if (sortMode) list = sortVideos(list, sortMode, !q);
+  const hasKids = kidVideos().length > 0;
   app.innerHTML =
-    topbar(`<input class="search" id="q" placeholder="${t('search')}" value="${esc(homeQuery)}">`) +
-    `<main class="wrap">
+    topbar(hasKids ? `<input class="search" id="q" placeholder="${t('search')}" value="${esc(homeQuery)}">` : '') +
+    `<main class="wrap${hasKids ? ' shelf-wrap' : ''}">
       ${legacySite ? `<aside class="panel" aria-labelledby="legacy-title">
         <h2 id="legacy-title">${t('legacyTitle')}</h2>
         ${db.videos.length ? `<p class="hint">${t('legacyBackupHint')}</p>` : ''}
@@ -430,13 +524,13 @@ function renderHome() {
         </div>
       </aside>` : ''}
       ${deviceKind() === 'ios' && !isStandalone() ? iosHomeScreenGuide() : ''}
-      ${kidVideos().length ? `<div class="chips">${[ALL, ...groups].map((g) => `<button class="chip ${g === homeGroup ? 'on' : ''}" data-g="${esc(g)}">${esc(g === ALL ? t('all') : g)}</button>`).join('')}</div>` : ''}
+      ${kidVideos().length ? `<div class="chips shelf-chips">${[ALL, ...groups].map((g) => `<button class="chip ${g === homeGroup ? 'on' : ''}" data-g="${esc(g)}">${esc(g === ALL ? t('all') : g)}</button>`).join('')}</div>` : ''}
       ${creators.length > 1 ? `<div class="chips sub">${[{ key: ALL, name: t('allCreators') }, ...creators].map((c) => `<button class="chip folder ${c.key === homeCreator ? 'on' : ''}" data-c="${esc(c.key)}">${ICON.folder(16)}<span>${esc(c.name)}</span>${c.count ? `<em>${c.count}</em>` : ''}</button>`).join('')}</div>` : ''}
       ${sortMode ? `<div class="chips sort">${SORTS.map((m) => `<button class="chip small ${m === sortMode ? 'on' : ''}" data-sort="${m}">${t('sort_' + m)}</button>`).join('')}</div>` : ''}
       ${continueRow(!q && homeGroup === ALL && homeCreator === ALL)}
-      ${list.length ? `<div class="grid">${homeCards(list, !q)}</div>`
-        : kidVideos().length ? `<div class="empty"><div class="big">${ICON.search(64)}</div><h2>${t('notFound')}</h2></div>`
-        : welcomeGuide()}
+      ${list.length ? `<div class="grid shelf">${homeCards(list, !q)}</div>`
+        : kidVideos().length ? `<div class="empty"><div class="big">${ICON.search(64)}</div><h2>${t('notFound')}</h2><button class="btn" id="clear-filters">${t('clearFilters')}</button></div>`
+        : emptyHome()}
     </main>`;
   bindTopbar();
   $('#legacy-export')?.addEventListener('click', async () => {
@@ -444,6 +538,8 @@ function renderHome() {
     exportBackup();
   });
   $('#guide-parent')?.addEventListener('click', () => $('#parent-btn')?.click());
+  bindTrack(app);
+  $('#clear-filters')?.addEventListener('click', () => { homeQuery = ''; homeGroup = ALL; homeCreator = ALL; renderHome(); });
   // 已安装，重新检测：先问一下助手；没回应就刷新页面（刚装好的脚本要刷新后才会注入）
   $('#guide-recheck')?.addEventListener('click', async (e) => {
     e.target.disabled = true;
@@ -456,7 +552,7 @@ function renderHome() {
   app.querySelectorAll('.chip[data-c]').forEach((c) => (c.onclick = () => { homeCreator = c.dataset.c; renderHome(); }));
   app.querySelectorAll('.chip[data-sort]').forEach((c) => (c.onclick = () => { (db.creatorSort ||= {})[homeCreator] = c.dataset.sort; save(); renderHome(); }));
   const input = $('#q');
-  input.oninput = () => {
+  if (input) input.oninput = () => {
     homeQuery = input.value;
     const pos = input.selectionStart;
     renderHome();
@@ -532,20 +628,35 @@ function helperGuide() {
   return `<div class="guide-dev">${t('g_thisDevice', t('dev_' + me))}</div>${deviceSteps(me)}
     ${others.map((k) => `<details class="guide-other"><summary>${t('g_otherDevice', t('dev_' + k))}</summary>${deviceSteps(k)}</details>`).join('')}`;
 }
-// 首页（还没有视频时）：给家长的 3 步
-function welcomeGuide() {
+function emptyHome() {
   const ver = helperVersion();
-  return `<div class="welcome" data-helper="${ver ? 'on' : 'off'}">
-    <div class="big"><div class="domi-say">${t('domiHello')}</div>${domi('wave', 104, t('domiName'))}</div><h2>${t('g_title')}</h2><p class="hint">${t('g_intro')}</p>
-    ${S.syncSupported() && !S.syncOn() ? `<p><a class="btn" href="#/join">${t('joinExisting')}</a></p>` : ''}
-    <div class="welcome-step"><div class="num">1</div><div class="body"><h3>${t('g_s2')}</h3><p class="hint">${t('g_s2body')}</p>
-      <button class="btn primary" id="guide-parent">${t('g_openParent')}</button></div></div>
-    <div class="welcome-step"><div class="num">2</div><div class="body"><h3>${t('g_s1')} ${ver ? `<span class="badge ok">${t('helperOn', ver)}</span>` : ''}</h3>
-      <p class="hint">${t('g_s1why')}</p>${ver ? '' : `<details class="guide-helper"${(() => { try { return sessionStorage.getItem('kt-recheck') ? ' open' : ''; } catch { return ''; } })()}><summary>${t('g_s1show')}</summary>${helperGuide()}
-      <div class="row"><button class="btn" id="guide-recheck">${t('helperRecheck')}</button></div>
-      ${(() => { try { return sessionStorage.getItem('kt-recheck'); } catch { return null; } })() ? `<p class="warn" id="guide-notyet">${t('g_notYet')}</p>` : ''}</details>`}</div></div>
-    <div class="welcome-step"><div class="num">3</div><div class="body"><h3>${t('g_s3')}</h3><p class="hint">${t('g_s3body')}</p></div></div>
-    <p class="hint" style="text-align:center;margin-top:18px">${t('g_recover')} <a href="#/recover">${t('recoverLink')} →</a></p>
+  const notYet = (() => { try { return sessionStorage.getItem('kt-recheck'); } catch { return null; } })();
+  return `<div class="welcome empty-home" data-helper="${ver ? 'on' : 'off'}">
+    <div class="big">${domi('wave', 104, t('domiName'))}</div>
+    <h1>${t('emptyH1')}</h1>
+    <p class="lead">${t('emptyLead')}</p>
+    <div class="path-grid">
+      <section class="path-card path-add">
+        <h2>${t('pathAddTitle')}</h2>
+        <p>${t('pathAddBody')}</p>
+        <button class="btn primary" id="guide-parent">${t('pathAddCta')}</button>
+        <p class="path-note">${t('pathAddPin')}</p>
+      </section>
+      <section class="path-card path-starter">
+        <h2>${t('pathStarterTitle')}</h2>
+        <p>${t('pathStarterBody')}</p>
+        <a class="btn starter-btn" data-track="try_watchlist" data-source="app_browse_starter" href="${starterPage()}">${t('pathStarterCta')}</a>
+        <a class="join-link" href="#/join">${t('pathJoin')}</a>
+      </section>
+    </div>
+    <details class="helper-fold">
+      <summary>${t('helperFold')}</summary>
+      <p>${t('platformLine')}</p>
+      ${ver ? `<p><span class="badge ok">${t('helperOn', ver)}</span></p>` : `<div class="guide-helper">${helperGuide()}
+        <div class="row"><button class="btn" id="guide-recheck">${t('helperRecheck')}</button></div>
+        ${notYet ? `<p class="warn" id="guide-notyet">${t('g_notYet')}</p>` : ''}</div>`}
+    </details>
+    <p class="recover-link">${t('g_recover')} <a href="#/recover">${t('recoverLink')}</a></p>
   </div>`;
 }
 // 助手装好后，首页的指引自动更新
@@ -721,6 +832,7 @@ function watchYouTube(box, onEnded) {
     const state = d?.event === 'onStateChange' ? d.info : d?.event === 'infoDelivery' && typeof d.info?.playerState === 'number' ? d.info.playerState : null;
     if (state === null) return;
     show(state);
+    if (state === 1) markPlaybackStarted();
     if (state !== lastState) { lastState = state; box.dispatchEvent(new Event('kt-state')); }
   };
   window.addEventListener('message', onMsg);
@@ -777,7 +889,7 @@ function mountVideo(box, v, src, onEnded, onFail, { forceHls = false, hlsConfig 
     box.parentElement.classList.toggle('portrait', video.videoHeight > video.videoWidth);
     if (v.resumeAt && v.resumeAt < video.duration - 8) video.currentTime = v.resumeAt;
   }, { once: false });
-  video.addEventListener('playing', () => (played = true));
+  video.addEventListener('playing', () => { played = true; markPlaybackStarted(); });
   video.addEventListener('ended', () => onEnded?.());
   if (onFail) video.addEventListener('error', () => { if (!played && box.isConnected) onFail(); });
   if (forceHls || (/\.m3u8(\?|$)/i.test(src) && !video.canPlayType('application/vnd.apple.mpegurl'))) {
@@ -881,7 +993,7 @@ function loadScript(src) {
 
 // ------------------------------------------------------------ 播放页
 function renderRest() {
-  app.innerHTML = topbar() + `<main class="wrap rest"><div class="big">${domi('wave', 120, t('domiName'))}</div><h1>${t('restTitle')}</h1><p class="hint">${t('restBody')}</p>
+  app.innerHTML = topbar('', { parents: false, lang: false }) + `<main class="wrap rest"><div class="big">${domi('wave', 120, t('domiName'))}</div><h1>${t('restTitle')}</h1><p class="hint">${t('restBody')}</p>
     <button class="btn" id="more">${t('restMore')}</button></main>`;
   bindTopbar();
   $('#more').onclick = async () => {
@@ -900,7 +1012,7 @@ function renderWatch(id) {
   const eps = v.series ? seriesEps(v.series.id) : [];
   const next = nextEpisode(v);
   app.innerHTML =
-    topbar() +
+    topbar('', { parents: false, lang: false }) +
     `<main class="wrap watch ${eps.length > 1 ? 'watch-series' : ''}">
       <section>
         <div class="player" id="player">
@@ -908,7 +1020,7 @@ function renderWatch(id) {
           <button type="button" class="player-fullscreen" id="fs"></button>
         </div>
         <div class="player-bar">
-          <a class="btn" href="#/">${t('back')}</a>
+          <a class="btn" href="#/">${t('backToList')}</a>
           ${next ? `<a class="btn primary" href="#/watch/${next.id}">${t('nextEp')} ${svg('<path d="M5 12h14m-6-6 6 6-6 6"/>', 18)}</a>` : ''}
         </div>
         <h1>${esc(v.title)}</h1>
@@ -1136,19 +1248,25 @@ async function openCreatorOf(v, btn) {
   else location.hash = '#/parent/add';
 }
 function paneAdd(el) {
+  const badge = (p) => `<span class="plat-${p}">${esc(platName(p))}</span>`;
   el.innerHTML = `<div class="panel">
     <h2>${t('addTitle')}</h2>
-    <p class="hint">${t('addHint')}</p>
+    <p class="hint">${t('addHintShort')}</p>
     <div class="row"><input class="field grow" id="url" placeholder="${t('addPlaceholder')}" autocomplete="off">
       <select class="field" id="grp" style="width:auto">${groupOptions(lastGroup || db.groups[0])}</select><button class="btn primary" id="go">${t('parse')}</button></div>
-    <div class="platforms">${['youtube', 'bilibili', 'vimeo', 'iqiyi'].map((p) => `<span class="plat-${p}">${esc(platName(p))}</span>`).join('')}<span class="plat-other">${t('directLink')}</span>${['qq', 'youku', 'baidupan'].map((p) => `<span class="plat-${p}">${esc(platName(p))}<i class="plug" title="${t('plugTip')}">🔌</i></span>`).join('')}</div>
-    <p class="hint plug-legend">${t('plugLegend')}</p>
+    <div class="platforms">${['youtube', 'bilibili'].map(badge).join('')}</div>
+    <details class="more-sites"><summary>${t('moreSites')}</summary>
+      <div class="platforms">${['vimeo', 'iqiyi'].map(badge).join('')}<span class="plat-other">${t('directLink')}</span>${['qq', 'youku', 'baidupan'].map(badge).join('')}</div>
+      <p class="hint">${t('platformLine')}</p>
+    </details>
+    <p class="hint"><a data-track="try_watchlist" data-source="app_try_starter" href="${STARTER_SHORT}">${t('tryStarter')}</a></p>
     <div id="helper-tip"></div><div id="result"></div></div>`;
+  bindTrack(el);
   bindGroupSelect($('#grp'));
   detectHelper().then((v) => {
     const tip = $('#helper-tip');
     if (v) document.querySelectorAll('.platforms .plug, .plug-legend').forEach((x) => x.remove());
-    else if (tip) tip.innerHTML = `<p class="hint" style="margin-top:14px">${t('helperMissingTip')} <a href="#/parent/accounts">${t('helperSetup')}</a></p>`;
+    else if (tip) tip.innerHTML = `<p class="hint" style="margin-top:14px">${t('platformLine')} <a href="#/parent/accounts">${t('helperSetup')}</a></p>`;
   });
   const input = $('#url');
   // 粘贴的分享文案前后常带有文字：自动提取其中的网址，并记下文案里的标题
@@ -1391,6 +1509,29 @@ function confirmBox({ title, body, ok, danger = true, extra = [] }) {
     mask?.addEventListener('click', (e) => e.target === mask && finish(false));
   });
 }
+function askText({ title, label, hint = '', value = '', ok }) {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (v) => { if (done) return; done = true; close(); resolve(v); };
+    const close = modal(`<h2>${title}</h2>${hint ? `<p class="hint">${hint}</p>` : ''}<label class="share-label">${label}<input class="field" id="ask-text" maxlength="80" value="${esc(value)}"></label>
+      <div class="row confirm-acts"><button class="btn" data-a="no">${t('cancel')}</button><button class="btn primary" data-a="yes">${ok}</button></div>`, (dlg) => {
+      const input = $('#ask-text', dlg);
+      input.focus();
+      input.select();
+      dlg.onclick = (e) => {
+        const b = e.target.closest('button');
+        if (!b) return;
+        if (b.dataset.a === 'no') return finish(null);
+        if (b.dataset.a !== 'yes') return;
+        const name = input.value.trim();
+        if (!name) return input.focus();
+        finish(name);
+      };
+      input.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); dlg.querySelector('[data-a="yes"]').click(); } };
+    });
+    $('#modal-root .mask')?.addEventListener('click', (e) => e.target.classList.contains('mask') && finish(null));
+  });
+}
 function exportBackup() {
   const blob = new Blob([JSON.stringify({ app: 'KidsTube', version: 1, groups: db.groups, videos: db.videos, seriesCovers: db.seriesCovers }, null, 2)], { type: 'application/json' });
   const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `kidstube-backup-${today()}.json` });
@@ -1601,9 +1742,13 @@ async function renderShort(id) {
 async function renderImport(code, listId) {
   let list;
   try { list = await decodeList(code || ''); } catch { list = null; }
+  if (listId) rememberPublicList(listId);
   if (!list || !list.videos.length) {
-    app.innerHTML = topbar() + `<main class="wrap rest"><div class="big">${domi('idle', 100, t('domiName'))}</div><h1>${t('importBad')}</h1><a class="btn" href="#/">${t('back')}</a></main>`;
-    return bindTopbar();
+    app.innerHTML = topbar() + `<main class="wrap rest"><div class="big">${domi('idle', 100, t('domiName'))}</div><h1>${t('importBad')}</h1><p class="hint">${t('importBadNext')}</p>
+      <div class="row" style="justify-content:center"><a class="btn primary" data-track="try_watchlist" data-source="import_fail_starter" href="${starterPage()}">${t('pathStarterCta')}</a><a class="btn" href="#/parent/add">${t('pathAddTitle')}</a></div></main>`;
+    bindTopbar();
+    bindTrack(app);
+    return;
   }
   const title = list.title || t('sharedList');
   document.title = title + ' · ' + t('appName');
@@ -1616,7 +1761,8 @@ async function renderImport(code, listId) {
     <div class="panel"><div class="row">
       <label class="grow import-group">${t('importTo')}<select class="field" id="im-group">
         ${!fresh.length ? `<option value="__keep">${t('importKeepCategories')}</option>` : ''}<option value="__new">${esc(t('newGroupNamed', title))}</option>${db.groups.map((g) => `<option value="${esc(g)}">${esc(g)}</option>`).join('')}</select></label>
-      <button class="btn primary" id="im-go">${t(fresh.length ? 'importMakeYours' : 'importViewSaved')}</button></div>
+      <button class="btn primary" id="im-go">${t(fresh.length ? 'importMakeYours' : 'importViewSaved')}</button>
+      <a class="btn" href="#/">${t('cancel')}</a></div>
       <label id="im-name-label" style="display:${fresh.length ? 'block' : 'none'};margin-top:12px">${t('newGroupPrompt')}<input class="field" id="im-group-name" value="${esc(title)}" maxlength="80" required ${fresh.length ? '' : 'disabled'}></label>
       <p class="hint" id="im-category-hint" style="display:none">${t('importCategoryHint')}</p>
       <p class="hint">${t('importOwnHint')}</p>
@@ -1687,8 +1833,8 @@ function showSavedImport(list, title, group) {
   app.innerHTML = topbar() + `<main class="wrap import">
     <div class="import-head"><div><h1>${esc(title)}</h1><p role="status">${t('importSaved')}</p></div></div>
     <div class="panel"><p class="hint">${t('importSavedHint')}</p><div class="row">
-      <button class="btn primary" id="im-edit">${t('importEdit')}</button>
-      ${playable.length ? `<a class="btn" id="im-watch" href="#/watch/${playable[0].id}">${t('importWatch')}</a>` : ''}
+      ${playable.length ? `<a class="btn primary" id="im-watch" href="#/watch/${playable[0].id}">${t('importWatch')}</a>` : ''}
+      <button class="btn" id="im-edit">${t('importEdit')}</button>
       <a class="btn" href="#/">${t('back')}</a></div></div>
     <div class="grid">${playable.map((v) => videoCard(v)).join('')}</div></main>`;
   bindTopbar();
@@ -1717,6 +1863,18 @@ async function backfillThumbs(list) {
 
 let libGroup = ALL, libCreator = ALL, libSeries = ALL, libSharedIds = null;
 function paneLibrary(el) {
+  if (!db.videos.length) {
+    el.innerHTML = `<div class="panel lib-empty">
+      <div class="big">${domi('wave', 88, t('domiName'))}</div>
+      <h2>${t('noVideos')}</h2>
+      <div class="row" style="justify-content:center">
+        <a class="btn primary" href="#/parent/add">${t('pathAddCta')}</a>
+        <a class="btn" data-track="try_watchlist" data-source="library_browse_starter" href="${starterPage()}">${t('pathStarterCta')}</a>
+      </div>
+    </div>`;
+    bindTrack(el);
+    return;
+  }
   let q = '';
   const sel = new Set(); // 勾选的视频 id
   const drawCreators = () => {
@@ -1736,8 +1894,9 @@ function paneLibrary(el) {
     $('#ls').hidden = !m.size;
     if (!m.size) libSeries = ALL;
     $('#ls').innerHTML = `<option value="${ALL}">${t('allSeries')}</option>`
-      + [...m].sort((a, b) => a[1].title.localeCompare(b[1].title, 'zh')).map(([id, x]) => `<option value="${esc(id)}" ${id === libSeries ? 'selected' : ''}>${esc(x.title)} (${x.n})</option>`).join('')
-      + (loose ? `<option value="${NONE}" ${libSeries === NONE ? 'selected' : ''}>${t('noSeries')} (${loose})</option>` : '');
+      + [...m].sort((a, b) => a[1].title.localeCompare(b[1].title, 'zh')).map(([id, x]) => `<option value="${esc(id)}">${esc(x.title)} (${x.n})</option>`).join('')
+      + (loose ? `<option value="${NONE}">${t('noSeries')} (${loose})</option>` : '');
+    if ([...$('#ls').options].some((o) => o.value === libSeries)) $('#ls').value = libSeries;
   };
   const drawGroups = () => {
     // 分组保留（空分组显示 0），只更新数量
@@ -1758,15 +1917,33 @@ function paneLibrary(el) {
     $('#delsel').textContent = t('delSelected', sel.size);
     $('#delsel').disabled = !sel.size;
     $('#delall').disabled = !!libSharedIds || !db.videos.length;
+    const make = $('#makecol');
+    if (make) make.disabled = sel.size < 2;
+    const viewing = libSeries !== ALL && libSeries !== NONE && seriesMembers(libSeries).length > 0;
+    if ($('#dissolve')) $('#dissolve').hidden = !viewing;
+    if ($('#col-hint')) $('#col-hint').hidden = !viewing;
   };
   const draw = () => {
     const list = filtered();
-    $('#libbody').innerHTML = list.map((v) => `<tr data-id="${v.id}" class="${sel.has(v.id) ? 'on' : ''}">
+    if (libSeries !== ALL && libSeries !== NONE) list.sort((a, b) => (a.series?.index ?? 0) - (b.series?.index ?? 0));
+    const pos = new Map();
+    for (const v of db.videos) {
+      if (!v.series) continue;
+      const arr = pos.get(v.series.id) || [];
+      arr.push(v);
+      pos.set(v.series.id, arr);
+    }
+    for (const arr of pos.values()) arr.sort((a, b) => a.series.index - b.series.index);
+    $('#libbody').innerHTML = list.map((v) => {
+      const members = v.series ? pos.get(v.series.id) || [] : [];
+      const at = members.findIndex((x) => x.id === v.id);
+      return `<tr data-id="${v.id}" class="${sel.has(v.id) ? 'on' : ''}">
       <td class="thumb-cell" style="width:120px"><label class="chk" title="${t('select')}"><input type="checkbox" data-sel ${sel.has(v.id) ? 'checked' : ''}></label>${v.thumb ? `<img src="${esc(v.thumb)}" referrerpolicy="no-referrer" loading="lazy" alt="">` : ''}</td>
-      <td><div class="t" contenteditable="true" data-f="title" title="${t('editTitle')}">${esc(v.title)}</div>
-        <div class="s">${esc(v.author || '')} · ${esc(platName(v.platform))}${v.series ? ` · <button class="link-btn" data-series="${esc(v.series.id)}" title="${t('renameSeries')}">${ICON.folder(13)} ${esc(v.series.title)} ✎</button> ${t('epOfN', epNo(v), seriesEps(v.series.id).length)}` : ''} · <a href="${esc(v.url)}" target="_blank" rel="noopener">${t('original')}</a></div></td>
+      <td><div class="title-edit"><div class="t" contenteditable="true" data-f="title" title="${t('editTitle')}">${esc(v.title)}</div><span class="edit-hint" title="${esc(t('editTitle'))}">✎</span></div>
+        <div class="s">${esc(v.author || '')} · ${esc(platName(v.platform))}${v.series ? ` · <button class="link-btn" data-series="${esc(v.series.id)}" title="${t('renameSeries')}">${ICON.folder(13)} ${esc(v.series.title)} ✎</button> ${t('epOfN', at + 1, members.length)}` : ''} · <a href="${esc(v.url)}" target="_blank" rel="noopener">${t('original')}</a></div></td>
       <td><select data-f="group">${db.groups.map((g) => `<option ${g === v.group ? 'selected' : ''}>${esc(g)}</option>`).join('')}</select></td>
-      <td class="acts">${v.series && R.coverUrl(v.thumb) ? `<button class="btn small" data-series-cover>${t(seriesCover(v.series.id).custom === R.coverUrl(v.thumb) ? 'seriesCoverAuto' : 'seriesCoverPick')}</button>` : ''}${canHaveCreator(v) ? `<button class="btn small" data-more>${t('moreFromCreator')}</button>` : ''}<button class="btn danger small" data-del>${t('del')}</button></td></tr>`).join('') || `<tr><td colspan="4" class="hint">${t('noVideos')}</td></tr>`;
+      <td class="acts">${v.series ? `<span class="ep-order"><button type="button" class="btn small" data-up aria-label="${t('moveUp')}" ${at <= 0 ? 'disabled' : ''}>↑</button><button type="button" class="btn small" data-down aria-label="${t('moveDown')}" ${at < 0 || at >= members.length - 1 ? 'disabled' : ''}>↓</button></span><button type="button" class="btn small" data-unseries>${t('removeFromCollection')}</button>` : ''}${v.series && R.coverUrl(v.thumb) ? `<button class="btn small" data-series-cover>${t(seriesCover(v.series.id).custom === R.coverUrl(v.thumb) ? 'seriesCoverAuto' : 'seriesCoverPick')}</button>` : ''}${canHaveCreator(v) ? `<button class="btn small" data-more>${t('moreFromCreator')}</button>` : ''}<button class="btn danger small" data-del>${t('del')}</button></td></tr>`;
+    }).join('') || `<tr><td colspan="4" class="hint">${t('noVideos')}</td></tr>`;
     drawBulk();
   };
   // 视频库有变化（删除 / 改分组）后：总数、分组数量、博主列表、列表、批量按钮全部重新计算
@@ -1800,10 +1977,12 @@ function paneLibrary(el) {
       <input class="field lib-q" id="lq" type="search" placeholder="${t('libSearch')}"></div>
     <div class="row lib-actions">
       <button class="btn small" id="selall"></button><button class="btn small" id="selnone">${t('selectNone')}</button>
-      <div class="spacer"></div>
       <button class="btn primary small" id="share">${ICON.share(16)} ${t('shareList')}</button>
+      <button class="btn small" id="makecol" type="button">${t('makeCollection')}</button>
       <button class="btn small" id="newg">${t('manageGroups')}</button>
-      <button class="btn danger-solid small" id="delsel"></button><button class="btn danger small" id="delall" style="${libSharedIds ? 'display:none' : ''}">${t('clearAll')}</button></div>
+      <div class="spacer"></div>
+      <span class="lib-danger"><button class="btn danger small" id="dissolve" type="button" hidden>${t('dissolveCollection')}</button><button class="btn danger small" id="delsel"></button><button class="btn danger small" id="delall" style="${libSharedIds ? 'display:none' : ''}">${t('clearAll')}</button></span></div>
+    <div class="hint collection-tools" id="col-hint" hidden>${t('collectionOrderHint')} <button type="button" class="btn small" id="col-rename">${t('renameCollection')}</button></div>
     <div class="table-wrap"><table class="lib"><tbody id="libbody"></tbody></table></div></div>`;
   if (libGroup !== ALL && !db.groups.includes(libGroup)) libGroup = ALL;
   if ($('#nudge-export')) $('#nudge-export').onclick = () => { exportBackup(); db.settings.backupNudgeAt = Date.now(); save(); };
@@ -1821,6 +2000,52 @@ function paneLibrary(el) {
   };
   $('#lc').onchange = (e) => { libCreator = e.target.value; libSeries = ALL; drawSeries(); draw(); };
   $('#ls').onchange = (e) => { libSeries = e.target.value; draw(); };
+  $('#makecol').onclick = async () => {
+    const videos = [...sel].map((id) => db.videos.find((v) => v.id === id)).filter(Boolean);
+    if (videos.length < 2) return toast(t('makeCollectionNeed'));
+    const name = await askText({ title: t('makeCollection'), label: t('seriesName'), hint: t('makeCollectionHint'), ok: t('makeCollection') });
+    if (!name) return;
+    const made = assignCollection(videos, name);
+    sel.clear();
+    q = '';
+    const search = $('#lq');
+    if (search) search.value = '';
+    libGroup = ALL;
+    libCreator = ALL;
+    libSeries = made.id;
+    save();
+    refresh();
+    const ls = $('#ls');
+    if (ls) {
+      ls.hidden = false;
+      ls.value = made.id;
+    }
+    $('#col-hint')?.scrollIntoView({ block: 'nearest' });
+    toast(t('makeCollectionDone', made.name));
+  };
+  $('#col-rename').onclick = async () => {
+    if (libSeries === ALL || libSeries === NONE) return;
+    const cur = seriesMembers(libSeries)[0]?.series.title || '';
+    const name = await askText({ title: t('renameCollection'), label: t('seriesName'), value: cur, ok: t('save') });
+    if (!name || name === cur) return;
+    seriesMembers(libSeries).forEach((v) => { v.series.title = name.slice(0, 80); });
+    save();
+    refresh();
+    toast(t('seriesRenamed', name));
+  };
+  $('#dissolve').onclick = async () => {
+    if (libSeries === ALL || libSeries === NONE) return;
+    const members = seriesMembers(libSeries);
+    if (!members.length) return;
+    const title = members[0].series.title;
+    if (!(await confirmBox({ title: t('dissolveTitle'), body: t('dissolveBody', title, members.length), ok: t('dissolveOk') }))) return;
+    members.forEach((v) => { delete v.series; });
+    pruneSeriesCovers();
+    libSeries = ALL;
+    save();
+    refresh();
+    toast(t('dissolveDone'));
+  };
   const byRow = (e) => db.videos.find((x) => x.id === e.target.closest('tr')?.dataset.id);
   $('#lq').oninput = (e) => { q = e.target.value.trim().toLowerCase(); draw(); };
   $('#libbody').addEventListener('change', (e) => {
@@ -1843,6 +2068,23 @@ function paneLibrary(el) {
     if (title && title !== v.title) { v.title = title; save(); toast(t('titleUpdated')); }
   });
   $('#libbody').addEventListener('click', (e) => {
+    if (e.target.matches('[data-up],[data-down]')) {
+      const v = byRow(e);
+      if (!v?.series || e.target.disabled) return;
+      if (moveEpisode(v, e.target.matches('[data-up]') ? -1 : 1)) { save(); draw(); }
+      return;
+    }
+    if (e.target.matches('[data-unseries]')) {
+      const v = byRow(e);
+      if (!v?.series) return;
+      const id = v.series.id;
+      delete v.series;
+      reindexSeries(id);
+      pruneSeriesCovers();
+      save();
+      refresh();
+      return toast(t('removedFromCollection'));
+    }
     if (e.target.matches('[data-more]')) return openCreatorOf(byRow(e), e.target);
     if (e.target.matches('[data-series-cover]')) {
       const v = byRow(e);
@@ -2073,19 +2315,20 @@ function syncStatusText() {
   if (st.state === 'gone') return t('syncGone');
   return t('syncLast', fmtSyncTime(S.syncInfo()?.at));
 }
-function syncPanel() {
-  if (!S.syncSupported()) return `<div class="panel"><h2>${t('syncTitle')}</h2><p class="hint">${t('syncNeedHttps')}</p></div>`;
-  if (!S.syncOn()) return `<div class="panel"><h2>${t('syncTitle')} <span class="badge">${t('syncBeta')}</span></h2>
+function syncPanel({ bare = false } = {}) {
+  const wrap = (inner) => bare ? inner : `<div class="panel">${inner}</div>`;
+  if (!S.syncSupported()) return wrap(`<h2>${t('syncTitle')}</h2><p class="hint">${t('syncNeedHttps')}</p>`);
+  if (!S.syncOn()) return wrap(`${bare ? '' : `<h2>${t('syncTitle')} <span class="badge">${t('syncBeta')}</span></h2>`}
     <p class="hint">${t('syncIntro')}</p>
     <div class="beta-rules"><b>${t('betaRulesTitle')}</b><ul>${t('betaRules').map((x) => `<li>${x}</li>`).join('')}</ul></div>
     <p class="hint" id="sync-seats"></p>
-    <div class="row"><button class="btn primary" id="sync-on">${t('syncEnable')}</button><a class="btn" href="#/join">${t('joinExisting')}</a><a class="btn" href="#/recover">${t('recoverLink')}</a></div></div>`;
+    <div class="row"><button class="btn primary" id="sync-on">${t('syncEnable')}</button><a class="btn" href="#/join">${t('joinExisting')}</a><a class="btn" href="#/recover">${t('recoverLink')}</a></div>`);
   const parent = S.isParentDevice();
-  return `<div class="panel"><h2>${t('syncTitle')} <span class="badge ok">${t('syncIsOn')}</span> <span class="badge">${parent ? t('roleParent') : t('roleChild')}</span>${S.syncInfo()?.beta ? ` <span class="badge">${t('betaFamily')}</span>` : ''}</h2>
+  return wrap(`<h2>${t('syncTitle')} <span class="badge ok">${t('syncIsOn')}</span> <span class="badge">${parent ? t('roleParent') : t('roleChild')}</span>${S.syncInfo()?.beta ? ` <span class="badge">${t('betaFamily')}</span>` : ''}</h2>
     <p class="hint" id="sync-status">${esc(syncStatusText())}</p>
     ${parent ? `<h3>${t('devTitle')}</h3><div id="sync-devices" class="device-list"><p class="hint">${t('devLoading')}</p></div>` : `<p class="hint">${t('devChildNote')}</p>`}
     <div class="row">${parent ? `<button class="btn primary" id="sync-add">${t('syncAddDevice')}</button><button class="btn" id="sync-rc">${t('rcButton')}</button>` : ''}<button class="btn" id="sync-now">${t('syncNow')}</button>
-      <div class="spacer"></div><button class="btn small" id="sync-leave">${t('syncLeave')}</button>${parent ? `<button class="btn danger small" id="sync-del">${t('syncDelete')}</button>` : ''}</div></div>`;
+      <div class="spacer"></div><button class="btn small" id="sync-leave">${t('syncLeave')}</button>${parent ? `<button class="btn danger small" id="sync-del">${t('syncDelete')}</button>` : ''}</div>`);
 }
 async function drawDevices(el) {
   const box = $('#sync-devices', el);
@@ -2449,29 +2692,52 @@ S.initSync({
 function paneSettings(el) {
   setTimeout(() => bindSyncPanel(el));
   const s = db.settings, u = usage();
-  el.innerHTML = `${syncPanel()}
-    <div class="panel"><h2>${t('langTitle')}</h2>
-      <div class="row">${Object.entries(DICT).map(([k, d]) => `<button class="chip ${k === s.lang ? 'on' : ''}" data-lang="${k}">${d.langName}</button>`).join('')}</div></div>
-    <div class="panel"><h2>${t('setTitle')}</h2>
-      <label>${t('dailyLimit')}</label>
-      <div class="row" style="margin:6px 0 4px"><input class="field" type="number" min="0" step="5" id="limit" value="${s.dailyLimit}" style="width:140px">
-        <span class="hint" style="margin:0">${t('watchedToday', Math.floor(u.sec / 60))}</span><button class="btn small" id="reset">${t('resetToday')}</button></div>
-      <h3>${t('nextEp')}</h3>
-      <label class="inline"><input type="checkbox" id="autoplay-next" ${s.autoplayNext ? 'checked' : ''}> ${t('autoplayNext')}</label>
-      <p class="hint">${t('autoplayHint')}</p>
-      <label class="inline"><input type="checkbox" id="bili-native" ${s.biliNative !== false ? 'checked' : ''}> ${t('biliNative')}</label>
-      <p class="hint">${t('biliNativeHint')}</p>
-      <h3>${t('lockTitle')}</h3>
-      <label class="inline"><input type="checkbox" id="shield" ${s.shield ? 'checked' : ''}> ${t('shield')}</label>
-      <p class="hint">${t('shieldHint')}</p>
-      <label>${t('sandbox')}</label>
-      <p class="hint">${t('sandboxHint')}</p>
-      <div class="sandbox-list">${SANDBOX_SITES.map((p) => `<label class="inline"><input type="checkbox" data-sandbox="${p}" ${sandboxOn(p) ? 'checked' : ''}> ${esc(platName(p))}</label>`).join('')}</div>
-      <button class="btn primary" id="save">${t('save')}</button></div>
-    <div class="panel"><h2>${t('pinTitle')}</h2><button class="btn" id="pin">${t('changePin')}</button></div>
-    <div class="panel"><h2>${t('backupTitle')}</h2>
-      <p class="hint">${t('backupHint')}</p>
-      <div class="row"><button class="btn" id="exp">${t('exportBtn')}</button><label class="btn">${t('importBtn')}<input type="file" id="imp" accept=".json" hidden></label></div></div>`;
+  el.innerHTML = `<details class="acc" open>
+      <summary>${t('setTitle')}</summary>
+      <div class="acc-body">
+        <label>${t('dailyLimit')}</label>
+        <div class="row" style="margin:6px 0 4px"><input class="field" type="number" min="0" step="5" id="limit" value="${s.dailyLimit}" style="width:140px">
+          <span class="hint" style="margin:0">${t('watchedToday', Math.floor(u.sec / 60))}</span><button class="btn small" id="reset">${t('resetToday')}</button></div>
+        <p class="hint">${t('saveLimitHint')}</p>
+        <button class="btn primary" id="save">${t('save')}</button>
+        <details class="more-player">
+          <summary>${t('morePlayer')}</summary>
+          <h3>${t('nextEp')}</h3>
+          <label class="inline"><input type="checkbox" id="autoplay-next" ${s.autoplayNext ? 'checked' : ''}> ${t('autoplayNext')}</label>
+          <p class="hint">${t('autoplayHint')}</p>
+          <label class="inline"><input type="checkbox" id="bili-native" ${s.biliNative !== false ? 'checked' : ''}> ${t('biliNative')}</label>
+          <p class="hint">${t('biliNativeHint')}</p>
+          <h3>${t('lockTitle')}</h3>
+          <label class="inline"><input type="checkbox" id="shield" ${s.shield ? 'checked' : ''}> ${t('shield')}</label>
+          <p class="hint">${t('shieldHint')}</p>
+          <label>${t('sandbox')}</label>
+          <p class="hint">${t('sandboxHint')}</p>
+          <div class="sandbox-list">${SANDBOX_SITES.map((p) => `<label class="inline"><input type="checkbox" data-sandbox="${p}" ${sandboxOn(p) ? 'checked' : ''}> ${esc(platName(p))}</label>`).join('')}</div>
+        </details>
+      </div>
+    </details>
+    <details class="acc">
+      <summary>${t('syncFold')}</summary>
+      <div class="acc-body"><p class="hint">${t('syncLight')}</p>${syncPanel({ bare: true })}</div>
+    </details>
+    <details class="acc">
+      <summary>${t('langTitle')}</summary>
+      <div class="acc-body">
+        <p class="hint">${t('langApplies')}</p>
+        <div class="row">${Object.entries(DICT).map(([k, d]) => `<button class="chip ${k === s.lang ? 'on' : ''}" data-lang="${k}">${d.langName}</button>`).join('')}</div>
+      </div>
+    </details>
+    <details class="acc">
+      <summary>${t('pinTitle')}</summary>
+      <div class="acc-body"><button class="btn" id="pin">${t('changePin')}</button></div>
+    </details>
+    <details class="acc">
+      <summary>${t('backupTitle')}</summary>
+      <div class="acc-body">
+        <p class="hint">${t('backupHint')}</p>
+        <div class="row"><button class="btn" id="exp">${t('exportBtn')}</button><label class="btn">${t('importBtn')}<input type="file" id="imp" accept=".json" hidden></label></div>
+      </div>
+    </details>`;
   el.querySelectorAll('[data-lang]').forEach((b) => (b.onclick = () => { setLang(b.dataset.lang); route(); }));
   $('#save').onclick = () => {
     s.dailyLimit = Math.max(0, Number($('#limit').value) || 0);
