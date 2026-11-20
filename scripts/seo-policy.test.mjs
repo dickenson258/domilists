@@ -127,6 +127,34 @@ test('middleware redirects from the Host header and does not call the asset serv
   assert.equal(response.headers.get('location'), 'https://lists.domibuddy.com/privacy?x=1');
 });
 
+test('early hints probes skip redirects and HTML rewrites', async () => {
+  const html = '<!doctype html><html><head><title>x</title></head><body>ok</body></html>';
+  for (const ua of ['fl2 early hints', 'nginx-ssl early hints']) {
+    let called = false;
+    const original = new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', etag: 'abc' } });
+    const response = await onRequest({
+      request: new Request('https://lists.domibuddy.com/?import=abc', {
+        headers: { host: 'www.domibuddy.com', 'user-agent': ua },
+      }),
+      async next() {
+        called = true;
+        return original;
+      },
+    });
+    assert.equal(called, true, ua);
+    assert.equal(response, original, ua);
+  }
+  const browser = await onRequest({
+    request: new Request('https://lists.domibuddy.com/?import=abc', {
+      headers: { host: 'lists.domibuddy.com', 'user-agent': 'Mozilla/5.0' },
+    }),
+    async next() {
+      return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8' } });
+    },
+  });
+  assert.equal(browser.headers.get('x-robots-tag'), 'noindex, follow');
+});
+
 test('middleware sets the robots header and leaves ordinary assets untouched', async () => {
   const html = '<!doctype html><html><head><title>x</title></head><body>ok</body></html>';
   const imported = await onRequest({
@@ -174,6 +202,37 @@ test('homepage and privacy publish a self-referencing canonical and do not noind
   assert.match(notFound, /<meta name="robots" content="noindex" \/>/);
   assert.doesNotMatch(notFound, /id="app"/);
   assert.doesNotMatch(notFound, /visit-source\.js/);
+  assert.match(home, /rel="icon" href="favicon\.ico"/);
+  assert.match(home, /rel="apple-touch-icon" href="apple-touch-icon\.png"/);
+  assert.doesNotMatch(home, /rel="preload"|rel="preconnect"|rel="modulepreload"/);
+  assert.match(read('public/_headers'), /! Link/);
+});
+
+test('every html page links a real favicon and apple touch icon', () => {
+  const pages = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.name.endsWith('.html')) pages.push(full);
+    }
+  };
+  walk(path.join(ROOT, 'public'));
+  assert.ok(pages.length >= 12);
+  for (const page of pages) {
+    const html = fs.readFileSync(page, 'utf8');
+    assert.match(html, /rel="icon"[^>]*href="[^"]*favicon\.ico"/, page);
+    assert.match(html, /rel="apple-touch-icon"[^>]*href="[^"]*apple-touch-icon\.png"/, page);
+    assert.doesNotMatch(html, /rel="preload"|rel="preconnect"|rel="modulepreload"/, page);
+  }
+  const ico = fs.readFileSync(path.join(ROOT, 'public/favicon.ico'));
+  assert.equal(ico.readUInt16LE(2), 1);
+  assert.equal(ico.readUInt16LE(4), 3);
+  assert.deepEqual([ico[6], ico[22], ico[38]], [16, 32, 48]);
+  const touch = fs.readFileSync(path.join(ROOT, 'public/apple-touch-icon.png'));
+  assert.equal(touch.readUInt32BE(16), 180);
+  assert.equal(touch.readUInt32BE(20), 180);
+  assert.equal(touch[25], 2);
 });
 
 test('import routes and the promo-only visit source are still in the client', () => {
@@ -246,6 +305,15 @@ test('preview server serves real pages, canonicals, and a hard 404', async () =>
     assert.equal(response.status, 200, page);
     assert.equal(response.headers['x-robots-tag'], undefined, page);
   }
+  const favicon = await fetchPath('/favicon.ico');
+  assert.equal(favicon.status, 200);
+  assert.equal(favicon.headers['content-type'], 'image/x-icon');
+  const touchIcon = await fetchPath('/apple-touch-icon.png');
+  assert.equal(touchIcon.status, 200);
+  assert.equal(touchIcon.headers['content-type'], 'image/png');
+  const svgIcon = await fetchPath('/icon.svg');
+  assert.equal(svgIcon.status, 200);
+
   const guide = await fetchPath('/en/guides/youtube-kids-alternative/');
   assert.match(guide.body, /https:\/\/lists\.domibuddy\.com\/en\/guides\/youtube-kids-alternative\//);
   const llms = await fetchPath('/llms.txt');
@@ -262,6 +330,11 @@ test('preview server serves real pages, canonicals, and a hard 404', async () =>
   assert.equal(missingText.status, 404);
   assert.equal(missingText.headers['content-type'], 'text/plain; charset=utf-8');
   assert.equal(missingText.body, 'Not found');
+
+  const missingIcon = await fetchPath('/missing.ico');
+  assert.equal(missingIcon.status, 404);
+  assert.equal(missingIcon.headers['content-type'], 'text/plain; charset=utf-8');
+  assert.equal(missingIcon.body, 'Not found');
 
   const slash = await fetchPath('/en');
   assert.equal(slash.status, 308);

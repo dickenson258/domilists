@@ -8,6 +8,24 @@ const API = 'https://api.domibuddy.com/v1/sync/';
 const STORE = 'domibuddy:sync';
 const CHUNK_BYTES = 512 * 1024;
 const FREE_BYTES = 2 * 1024 * 1024;
+const MEMBER_BYTES = 20 * 1024 * 1024;
+// 服务器（domilists-cloud）对 v2 的限制：最新一份密文，免费 2 MiB、会员 20 MiB（原始字节，不是 base64）。
+// 已存的字节加上这一份还不能超过上限的 2 倍。AES-GCM 密文 = gzip 后的长度 + 16 字节标签，再加 12 字节 IV，一共 +28。
+// 旧的 v1 接口在 base64 密文超过 1_000_000 字符时直接 413；现在不再走那条单次上传。
+export function syncUploadLimit(capacity) {
+  const advertised = Number(capacity?.limit);
+  const limit = Number.isFinite(advertised) && advertised > 0 ? advertised : FREE_BYTES;
+  return Math.min(limit, MEMBER_BYTES);
+}
+export function syncPayloadTooBig(capacity, encryptedSize, blocked) {
+  const limit = syncUploadLimit(capacity);
+  const stored = Number(capacity?.bytes);
+  const used = Number.isFinite(stored) && stored > 0 ? stored : 0;
+  if (encryptedSize > limit || used + encryptedSize > limit * 2) return true;
+  // 服务器已经用 413 拒绝过这么大（或更大）的一份，而且上限没有变高：不要再传。
+  if (blocked && encryptedSize >= blocked.bytes && limit <= blocked.limit) return true;
+  return false;
+}
 const SETTINGS = ['pinHash', 'dailyLimit', 'autoplayNext', 'biliNative', 'shield', 'sandbox', 'sandboxSites', 'sandboxYoukuDefault', 'ytKey'];
 
 export const syncSupported = () => !!(globalThis.crypto?.subtle && window.isSecureContext && globalThis.CompressionStream && globalThis.DecompressionStream);
@@ -95,9 +113,10 @@ async function retry(fn) {
   for (let n = 0; ; n++) {
     try {
       const result = await fn();
-      if (!retryable.has(result.status) || n === 2) return result;
+      // 413 是片单超过容量，不是暂时故障。再试只会打成每小时几百次的循环。
+      if (result?.status === 413 || !retryable.has(result?.status) || n === 2) return result;
     } catch (e) {
-      if (n === 2 || e.message === 'sync_session_changed') throw e;
+      if (n === 2 || e.message === 'sync_session_changed' || e.message === 'too_large') throw e;
     }
     await new Promise((resolve) => setTimeout(resolve, 250 * 2 ** n));
   }
@@ -112,14 +131,18 @@ async function transform(raw, format) {
   const output = format === 'compress' ? new CompressionStream('gzip') : new DecompressionStream('gzip');
   return new Uint8Array(await new Response(stream.pipeThrough(output)).arrayBuffer());
 }
-async function prepareUpload(current, serialized, fingerprint) {
-  const raw = new TextEncoder().encode(serialized);
-  const compressed = await transform(raw, 'compress');
+async function measurePayload(serialized) {
+  const compressed = await transform(new TextEncoder().encode(serialized), 'compress');
+  return { compressed, encryptedSize: compressed.length + 28 };
+}
+async function prepareUpload(current, serialized, fingerprint, compressed) {
+  if (!compressed) compressed = (await measurePayload(serialized)).compressed;
   checkSession(current);
-  const { limit } = current.capacity || { limit: FREE_BYTES };
-  if (compressed.length + 28 > limit) {
-    await cancelPending(current);
-    throw new Error('too_large');
+  const encryptedSize = compressed.length + 28;
+  if (syncPayloadTooBig(current.capacity, encryptedSize, current.blockedUpload)) {
+    const error = new Error('too_large');
+    error.encryptedSize = encryptedSize;
+    throw error;
   }
   const encodedHash = await hashBytes(compressed);
   const previous = current.pending;
@@ -151,8 +174,8 @@ async function cancelPending(current) {
 const chunksOf = (bytes) => Array.from({ length: Math.ceil(bytes.length / CHUNK_BYTES) },
   (_, i) => bytes.subarray(i * CHUNK_BYTES, (i + 1) * CHUNK_BYTES));
 const manifestHash = async (chunks) => hashBytes(new TextEncoder().encode((await Promise.all(chunks.map(hashBytes))).join('')));
-async function uploadSnapshot(current, serialized, fingerprint) {
-  const { upload, bytes } = await prepareUpload(current, serialized, fingerprint);
+async function uploadSnapshot(current, serialized, fingerprint, compressed) {
+  const { upload, bytes } = await prepareUpload(current, serialized, fingerprint, compressed);
   const chunks = chunksOf(bytes), hash = await manifestHash(chunks), path = '/uploads/' + upload.id;
   const start = () => retry(() => v2(current, 'PUT', path, { base: upload.base, bytes: bytes.length, hash }));
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -223,10 +246,15 @@ export function onSaved() {
   pushTimer = setTimeout(() => queue(async () => { if (await pull()) await push(); }), 1500);
 }
 
-async function rememberOversize(current, serialized, fingerprint) {
+async function rememberOversize(current, serialized, fingerprint, encryptedSize, fromServer) {
+  if (!isCurrent(current)) return;
+  if (current.pending) {
+    try { await cancelPending(current); } catch { /* 下次能传得下的时候会再取消 */ }
+  }
   if (!isCurrent(current)) return;
   current.rejectedSnapshot = fingerprint;
-  current.rejectedLimit = current.capacity?.limit || FREE_BYTES;
+  current.rejectedLimit = syncUploadLimit(current.capacity);
+  if (fromServer && encryptedSize > 0) current.blockedUpload = { bytes: encryptedSize, limit: current.rejectedLimit };
   rejectedPrint = serialized;
   saveCfg();
   status('too_large');
@@ -239,16 +267,22 @@ async function push() {
   const fingerprint = await snapshotHash(serialized);
   if (!isCurrent(current)) return;
   if (fingerprint === current.baseline) { lastPrint = serialized; return; }
-  if (current.rejectedSnapshot === fingerprint && current.rejectedLimit === current.capacity?.limit) {
+  const limit = syncUploadLimit(current.capacity);
+  if (current.rejectedSnapshot === fingerprint && current.rejectedLimit === limit) {
     rejectedPrint = serialized;
     return status('too_large');
   }
   try {
     status('syncing');
-    const result = await uploadSnapshot(current, serialized, fingerprint);
+    const { compressed, encryptedSize } = await measurePayload(serialized);
+    if (!isCurrent(current)) return;
+    if (syncPayloadTooBig(current.capacity, encryptedSize, current.blockedUpload)) {
+      return rememberOversize(current, serialized, fingerprint, encryptedSize, false);
+    }
+    const result = await uploadSnapshot(current, serialized, fingerprint, compressed);
     checkSession(current);
     cloudCapacity(result, current);
-    if (result.status === 413) throw new Error('too_large');
+    if (result.status === 413) return rememberOversize(current, serialized, fingerprint, encryptedSize, true);
     if (result.status === 409 && result.error === 'conflict') {
       await pull();
       return;
@@ -259,7 +293,7 @@ async function push() {
     status('ok');
   } catch (error) {
     if (!isCurrent(current)) return;
-    if (error.message === 'too_large') return rememberOversize(current, serialized, fingerprint);
+    if (error.message === 'too_large') return rememberOversize(current, serialized, fingerprint, error.encryptedSize || 0, false);
     status('error', { error: String(error.message || error) });
   }
 }
@@ -273,6 +307,7 @@ function finishSnapshot(current, head, fingerprint) {
   delete current.rejectedSnapshot;
   delete current.rejectedCloudVersion;
   delete current.rejectedLimit;
+  delete current.blockedUpload;
   rejectedPrint = null;
   saveCfg();
 }
@@ -308,7 +343,7 @@ async function pull(retryVersion = true) {
     }
     if (head.version === current.version && current.baseline) {
       if (current.baseline === localHash) { lastPrint = local; status('ok'); }
-      else if (current.rejectedSnapshot === localHash && current.rejectedLimit === head.capacity?.limit) {
+      else if (current.rejectedSnapshot === localHash && current.rejectedLimit === syncUploadLimit(head.capacity)) {
         rejectedPrint = local;
         status('too_large');
       }
@@ -371,7 +406,7 @@ async function applyDownloaded(current, head, snap) {
 export async function enableSync() {
   const key = b64u(crypto.getRandomValues(new Uint8Array(32)));
   const serialized = print(snapshot(hooks.getDb()));
-  if ((await transform(new TextEncoder().encode(serialized), 'compress')).length + 28 > FREE_BYTES) throw new Error('too_large');
+  if ((await measurePayload(serialized)).encryptedSize > FREE_BYTES) throw new Error('too_large');
   const current = cfg = { key, version: 0, at: null };
   lastPrint = '';
   try {

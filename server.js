@@ -13,7 +13,7 @@ const PORT = Number(process.env.PORT || 5173);
 const HOST = process.env.HOST || '0.0.0.0';
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
-  '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.webmanifest': 'application/manifest+json',
+  '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json', '.webmanifest': 'application/manifest+json',
   '.xml': 'application/xml; charset=utf-8', '.txt': 'text/plain; charset=utf-8',
 };
 

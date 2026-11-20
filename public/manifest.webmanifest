@@ -5,5 +5,8 @@
   "display": "standalone",
   "background_color": "#fff8ef",
   "theme_color": "#ff7a59",
-  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+  "icons": [
+    { "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
 }

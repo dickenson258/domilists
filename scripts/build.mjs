@@ -34,6 +34,19 @@ for (const f of ['sitemap.xml', 'robots.txt', 'llms.txt', '404.html']) {
     throw new Error('dist/404.html must be a real not-found page, not the SPA');
   }
 }
+// public/ 整目录复制已经带上图标。这里再核对尺寸，避免 404.html 把 /favicon.ico 和触摸图标吃掉。
+const ico = readFileSync(join(OUT, 'favicon.ico'));
+if (ico.readUInt16LE(0) !== 0 || ico.readUInt16LE(2) !== 1 || ico.readUInt16LE(4) !== 3) {
+  throw new Error('dist/favicon.ico must be an ICO with 16, 32 and 48');
+}
+for (const size of [16, 32, 48]) {
+  const widths = [ico[6], ico[6 + 16], ico[6 + 32]];
+  if (!widths.includes(size)) throw new Error(`dist/favicon.ico is missing the ${size}px image`);
+}
+const touch = readFileSync(join(OUT, 'apple-touch-icon.png'));
+if (touch.readUInt32BE(16) !== 180 || touch.readUInt32BE(20) !== 180 || touch[25] !== 2) {
+  throw new Error('dist/apple-touch-icon.png must be a 180x180 opaque PNG');
+}
 
 const run = (args) => execFileSync('npx', [...ESBUILD, ...args], { cwd: ROOT, stdio: ['ignore', 'inherit', 'inherit'] });
 run(['public/app.js', '--bundle', '--format=esm', '--minify', '--target=es2020', '--legal-comments=none', '--charset=utf8', '--outfile=dist/app.js']);
