@@ -41,9 +41,10 @@ Domi Lists puts one list in front of the child: only the videos the parent added
 By default the list stays on this device. In Settings, a parent can turn on **sync across devices**: organize the list on a computer and a child's tablet updates by itself, so not every device needs the helper.
 
 - No account or sign-up is needed. The list, groups, parent PIN hash and parent settings are encrypted with AES-GCM on your device before upload to api.domibuddy.com. The key stays on your devices; we can't decrypt it.
+- The client compresses before encrypting and resumes incomplete uploads. When a newer cloud version conflicts with local edits, the app keeps the local list and offers a backup export. Older devices must reload before syncing with a family that has committed a segmented version.
 - Watch progress, today's watch time and interface language are not synced; they stay on each device.
 - Turning on sync creates a recovery code, shown only on your device. Keep it safe: anyone with the code can manage the synced list.
-- Sync is **free during the beta**, with a limited number of seats (500). Before it becomes a paid feature, we'll tell you in the app **at least 30 days ahead** (we don't collect emails, so the app is the only way we can reach you). Families who join during the beta get an **early-bird price** or extra free time after launch. If you don't subscribe after launch, sync pauses but **the list stays on every device**, and your child can keep watching.
+- Each family gets 2 MiB for its latest encrypted list on the free plan or 20 MiB with membership. Roughly 4,000 or 40,000 videos may fit, depending on the content. The app shows actual usage and warns at 80%.
 
 ## Running and deploying
 
@@ -161,7 +162,7 @@ server.js                       Optional local preview server (static files only
 - 不需要注册账号。片单、分组、家长密码（哈希）和家长设置在你的设备上用 AES-GCM 加密后才上传到 api.domibuddy.com。加密密钥只保存在你的设备里，我们无法解密。
 - 观看进度、每日已看时长和界面语言不会同步，只保存在各自设备上。
 - 开启同步时会生成一个恢复码，只在你的设备上显示。请妥善保管：拿到恢复码的人可以管理你的同步片单。
-- 测试期间多设备同步**免费**，名额有限（500 个）。正式收费前，会在应用里**至少提前 30 天**通知（我们不收集邮箱，只能在应用里通知）。测试期间开启的家庭，正式上线后可享**早鸟价**或额外的免费时间。正式收费后如果不续订，同步会暂停，但**每台设备上的片单都会保留**，孩子照常能看。
+- 按全家累计，免费版最新加密片单上限 2 MiB，会员 20 MiB，约可存 4,000 或 40,000 部视频，取决于内容。应用显示实际用量，达到 80% 时提醒。
 
 ### 运行和部署
 

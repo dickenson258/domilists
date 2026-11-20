@@ -1,9 +1,10 @@
-// 朵米片单前端 —— 所有数据只保存在本浏览器 localStorage，不上传任何服务器
+// 朵米片单前端：默认保存在浏览器。开启家庭同步后只上传加密片单。
 import { DICT } from './i18n.js';
 import * as R from './resolver.js';
 import { detectHelper, onHelper, helperRequest, helperVersion, pingHelper } from './bridge.js';
 import { wrapSourceBuffer } from './h264fix.js';
 import * as S from './sync.js';
+import { readLargeLibrary, writeLargeLibrary } from './sync-storage.js';
 
 // 检测到朵米助手后，跨域请求改由助手发出
 onHelper(() => R.setTransport(helperRequest));
@@ -20,8 +21,11 @@ const starterPage = () => `${db.settings.lang === 'zh' ? '/zh' : '/en'}/watchlis
 
 // ------------------------------------------------------------ 本地存储
 const KEY = 'kidstube:v1';
+const LARGE_KEY = 'kidstube:large-library';
+let largeLibrary = false, hydrated = false;
+let pendingSave = Promise.resolve();
 const browserLang = /^zh/i.test(navigator.language) ? 'zh' : 'en';
-function load() {
+function load(serialized) {
   const base = {
     videos: [],
     seriesCovers: {},
@@ -30,7 +34,7 @@ function load() {
     usage: { date: today(), sec: 0, bonus: 0 },
   };
   try {
-    const d = JSON.parse(localStorage.getItem(KEY));
+    const d = JSON.parse(serialized ?? localStorage.getItem(KEY));
     if (d) return { ...base, ...d, seriesCovers: d.seriesCovers || {}, settings: { ...base.settings, ...d.settings } };
   } catch {}
   return base;
@@ -90,8 +94,29 @@ function moveEpisode(v, dir) {
   return true;
 }
 function save() {
-  try { localStorage.setItem(KEY, JSON.stringify(db)); } catch { toast(t('storageFail')); }
-  S.onSaved();
+  const serialized = JSON.stringify(db);
+  if (!largeLibrary) {
+    try {
+      localStorage.setItem(KEY, serialized);
+      S.onSaved();
+      return Promise.resolve(true);
+    } catch { largeLibrary = true; }
+  }
+  pendingSave = pendingSave.then(async () => {
+    try {
+      await writeLargeLibrary(serialized);
+      try { localStorage.setItem(LARGE_KEY, '1'); } catch {
+        try { localStorage.removeItem(KEY); } catch {}
+        try { localStorage.setItem(LARGE_KEY, '1'); } catch {}
+      }
+      S.onSaved();
+      return true;
+    } catch {
+      toast(t('storageFail'));
+      return false;
+    }
+  });
+  return pendingSave;
 }
 function usage() {
   if (db.usage.date !== today()) db.usage = { date: today(), sec: 0, bonus: 0 };
@@ -298,6 +323,7 @@ const app = $('#app');
 let cleanup = null;
 let pendingPairCode = null;
 function route() {
+  if (!hydrated) return;
   const modalRoot = $('#modal-root');
   if (modalRoot) modalRoot.innerHTML = '';
   cleanup?.();
@@ -2504,13 +2530,22 @@ async function runSelfTest() {
 
 // ------------------------------------------------------------ 多设备同步
 let syncState = { state: S.syncOn() ? 'idle' : 'off' };
+const syncBackupNeeded = (state) => ['too_large', 'pending_conflict', 'error'].includes(state);
 const fmtSyncTime = (ms) => (ms ? new Date(ms).toLocaleString(db.settings.lang === 'zh' ? 'zh-CN' : 'en', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—');
 function syncStatusText() {
   const st = syncState;
   if (st.state === 'syncing') return t('syncBusy');
+  if (st.state === 'too_large') return t('syncTooLarge');
+  if (st.state === 'pending_conflict') return t('syncPendingConflict');
   if (st.state === 'error') return t('syncErr', st.error || '');
   if (st.state === 'gone') return t('syncGone');
   return t('syncLast', fmtSyncTime(S.syncInfo()?.at));
+}
+function syncUsageText() {
+  const usage = S.syncInfo()?.capacity;
+  if (!usage) return '';
+  const percent = Math.round(usage.bytes / usage.limit * 100);
+  return t('syncUsage', db.videos.length, percent, usage.plan) + (usage.bytes >= usage.limit * .8 ? ' · ' + t('syncUsageWarn') : '');
 }
 function syncPanel({ bare = false } = {}) {
   const wrap = (inner) => bare ? inner : `<div class="panel">${inner}</div>`;
@@ -2518,11 +2553,15 @@ function syncPanel({ bare = false } = {}) {
   if (!S.syncOn()) return wrap(`${bare ? '' : `<h2>${t('syncTitle')} <span class="badge">${t('syncBeta')}</span></h2>`}
     <p class="hint">${t('syncIntro')}</p>
     <div class="beta-rules"><b>${t('betaRulesTitle')}</b><ul>${t('betaRules').map((x) => `<li>${x}</li>`).join('')}</ul></div>
-    <p class="hint" id="sync-seats"></p>
+    <p class="hint">${t('syncUsageEstimates')}</p><p class="hint" id="sync-seats"></p>
+    ${syncBackupNeeded(syncState.state) ? `<p class="warn">${esc(syncStatusText())}</p><button class="btn small" id="sync-backup">${t('exportBtn')}</button>` : ''}
     <div class="row"><button class="btn primary" id="sync-on">${t('syncEnable')}</button><a class="btn" href="#/join">${t('joinExisting')}</a><a class="btn" href="#/recover">${t('recoverLink')}</a></div>`);
   const parent = S.isParentDevice();
   return wrap(`<h2>${t('syncTitle')} <span class="badge ok">${t('syncIsOn')}</span> <span class="badge">${parent ? t('roleParent') : t('roleChild')}</span>${S.syncInfo()?.beta ? ` <span class="badge">${t('betaFamily')}</span>` : ''}</h2>
     <p class="hint" id="sync-status">${esc(syncStatusText())}</p>
+    <p class="hint" id="sync-usage">${esc(syncUsageText())}</p>
+    <p class="hint">${t('syncUsageEstimates')}</p>
+    <div id="sync-backup-row" ${syncBackupNeeded(syncState.state) ? '' : 'hidden'}><button class="btn small" id="sync-backup">${t('exportBtn')}</button></div>
     ${parent ? `<h3>${t('devTitle')}</h3><div id="sync-devices" class="device-list"><p class="hint">${t('devLoading')}</p></div>` : `<p class="hint">${t('devChildNote')}</p>`}
     <div class="row">${parent ? `<button class="btn primary" id="sync-add">${t('syncAddDevice')}</button><button class="btn" id="sync-rc">${t('rcButton')}</button>` : ''}<button class="btn" id="sync-now">${t('syncNow')}</button>
       <div class="spacer"></div><button class="btn small" id="sync-leave">${t('syncLeave')}</button>${parent ? `<button class="btn danger small" id="sync-del">${t('syncDelete')}</button>` : ''}</div>`);
@@ -2563,7 +2602,7 @@ async function drawDevices(el) {
     });
   }));
 }
-const syncErrText = (m) => ({ beta_full: t('betaFull'), closed: t('betaClosed'), too_many_requests: t('tooMany') })[m] || t('syncErr', m);
+const syncErrText = (m) => ({ beta_full: t('betaFull'), closed: t('betaClosed'), too_many_requests: t('tooMany'), too_large: t('syncTooLarge') })[m] || t('syncErr', m);
 // 开启同步前先问：这个家庭是不是已经在别的设备 / 别的浏览器开过了？开过就加入那个同步（配对链接或恢复码），
 // 不再新开一个——同一部手机的不同浏览器数据是分开的，网页无法知道它们是同一台设备
 function askFirstSync(btn, start) {
@@ -2596,10 +2635,15 @@ function bindSyncPanel(el) {
   on('sync-on', (e) => askFirstSync(e.currentTarget, async (btn) => {
     btn.disabled = true;
     let code;
-    try { code = await S.enableSync(); } catch (err) { toast(syncErrText(err.message)); btn.disabled = false; return; }
+    try { code = await S.enableSync(); } catch (err) {
+      toast(syncErrText(err.message));
+      if (err.message === 'too_large') { syncState = { state: 'too_large' }; renderParent('settings'); }
+      else btn.disabled = false;
+      return;
+    }
     renderParent('settings');
     if (code) showRecoveryDialog(code, () => showPairDialog());
-    else showPairDialog();
+    else if (S.syncInfo()?.version) showPairDialog();
   }));
   on('sync-add', () => showPairDialog());
   on('sync-rc', async () => {
@@ -2607,14 +2651,17 @@ function bindSyncPanel(el) {
     if (code) return showRecoveryDialog(code);
     try { showRecoveryDialog(await S.newRecoveryCode()); } catch (err) { toast(t('syncErr', err.message)); }
   });
-  on('sync-now', async () => { await S.syncNow(); toast(syncState.state === 'error' ? syncStatusText() : t('syncDone')); });
+  on('sync-backup', exportBackup);
+  on('sync-now', async () => { await S.syncNow(); toast(syncState.state === 'ok' ? t('syncDone') : syncStatusText()); });
   on('sync-leave', async () => {
     if (!(await confirmBox({ title: t('syncLeave'), body: t('syncLeaveBody'), ok: t('syncLeave') }))) return;
     await S.leaveSync(); syncState = { state: 'off' }; renderParent('settings');
   });
   on('sync-del', async () => {
     if (!(await confirmBox({ title: t('syncDelete'), body: t('syncDeleteBody'), ok: t('syncDelete') }))) return;
-    toast((await S.deleteCloud()) ? t('syncDeleted') : t('syncErr', ''));
+    const deleted = await S.deleteCloud().catch(() => false);
+    toast(deleted ? t('syncDeleted') : t('syncErr', ''));
+    if (!deleted) return;
     syncState = { state: 'off' }; renderParent('settings');
   });
 }
@@ -2847,9 +2894,10 @@ async function renderPair(code, inApp) {
     }
   };
 }
-S.initSync({
+const syncHooks = {
   getDb: () => db,
-  applyRemote(snap) {
+  async applyRemote(snap) {
+    const previous = { groups: db.groups, videos: db.videos, seriesCovers: db.seriesCovers, settings: { ...db.settings } };
     if (Array.isArray(snap.groups)) db.groups = snap.groups;
     if (Array.isArray(snap.videos)) db.videos = snap.videos;
     if (snap.seriesCovers && typeof snap.seriesCovers === 'object') {
@@ -2857,7 +2905,7 @@ S.initSync({
       importSeriesCovers(snap.seriesCovers, db.videos);
     } else pruneSeriesCovers();
     Object.assign(db.settings, snap.settings || {});
-    save();
+    if (!(await save())) { Object.assign(db, previous); throw new Error('storage_unavailable'); }
     scheduleSeriesCoverBackfill();
     // 孩子正在看视频时不打断；其他页面刷新一下显示新片单
     const page = location.hash.split('/')[1] || '';
@@ -2867,6 +2915,10 @@ S.initSync({
     syncState = st;
     const el = $('#sync-status');
     if (el) el.textContent = syncStatusText();
+    const usage = $('#sync-usage');
+    if (usage) usage.textContent = syncUsageText();
+    const backup = $('#sync-backup-row');
+    if (backup) backup.hidden = !syncBackupNeeded(st.state);
   },
   // 家长把这台设备移除了：按家长的选择清空同步来的片单
   onRevoked(wipe) {
@@ -2884,7 +2936,7 @@ S.initSync({
       if (location.hash.startsWith('#/parent/settings')) renderParent('settings');
     }
   },
-});
+};
 
 function paneSettings(el) {
   setTimeout(() => bindSyncPanel(el));
@@ -3051,8 +3103,28 @@ async function refreshBdpanThumbs() {
   if (!location.hash || location.hash === '#/') route();
 }
 
-route();
-scheduleSeriesCoverBackfill();
-onHelper(scheduleSeriesCoverBackfill);
-fillYouTubeChannels();
-refreshBdpanThumbs();
+async function startApp() {
+  try {
+    largeLibrary = localStorage.getItem(LARGE_KEY) === '1';
+    if (largeLibrary || !localStorage.getItem(KEY)) {
+      const stored = await readLargeLibrary();
+      if (stored) {
+        Object.assign(db, load(stored));
+        largeLibrary = true;
+      } else if (largeLibrary) throw new Error('missing_library');
+    }
+  } catch {
+    if (largeLibrary) {
+      app.textContent = t('storageFail');
+      return;
+    }
+  }
+  hydrated = true;
+  S.initSync(syncHooks);
+  route();
+  scheduleSeriesCoverBackfill();
+  onHelper(scheduleSeriesCoverBackfill);
+  fillYouTubeChannels();
+  refreshBdpanThumbs();
+}
+void startApp();
