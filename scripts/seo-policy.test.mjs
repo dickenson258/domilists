@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
+import { once } from 'node:events';
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
-import { after, before, test } from 'node:test';
+import { after, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { decide, GO_EXACT, GO_PLATFORMS } from '../functions/seo-policy.js';
 import { onRequest } from '../functions/_middleware.js';
@@ -248,15 +249,16 @@ test('import routes and the promo-only visit source are still in the client', ()
 });
 
 let server;
-let port;
-before(async () => {
-  server = http.createServer(handle);
-  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-  port = server.address().port;
-});
-after(() => new Promise((resolve) => server.close(resolve)));
+let previewPort;
+after(() => server?.listening && new Promise((resolve) => server.close(resolve)));
 
-function fetchPath(urlPath, headers = {}) {
+async function fetchPath(urlPath, headers = {}) {
+  if (!previewPort) {
+    server = http.createServer(handle);
+    previewPort = once(server.listen(0, '127.0.0.1'), 'listening')
+      .then(() => server.address().port);
+  }
+  const port = await previewPort;
   return new Promise((resolve, reject) => {
     const req = http.request({ hostname: '127.0.0.1', port, path: urlPath, method: 'GET', headers }, (res) => {
       const chunks = [];
