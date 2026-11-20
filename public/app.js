@@ -1424,6 +1424,7 @@ function renderParent(tab) {
       <nav class="nav">${TABS.map((k) => `<button data-t="${k}" class="${k === tab ? 'on' : ''}">${t(TAB_LABEL[k])}</button>`).join('')}</nav>
       <section id="pane"></section>
     </main>`;
+  ensureTooLargeBanner();
   bindLangBtn();
   $('#exit').onclick = () => { parentUnlocked = false; location.hash = '#/'; };
   app.querySelectorAll('.nav button').forEach((b) => (b.onclick = () => (location.hash = '#/parent/' + b.dataset.t)));
@@ -2541,6 +2542,24 @@ function syncStatusText() {
   if (st.state === 'gone') return t('syncGone');
   return t('syncLast', fmtSyncTime(S.syncInfo()?.at));
 }
+function syncStatusClass(state) {
+  return syncBackupNeeded(state) ? 'warn' : 'hint';
+}
+function ensureTooLargeBanner() {
+  const main = document.querySelector('main.admin');
+  if (!main) return;
+  let banner = $('#sync-too-large');
+  if (syncState.state !== 'too_large') { banner?.remove(); return; }
+  if (!banner) {
+    banner = document.createElement('p');
+    banner.id = 'sync-too-large';
+    banner.className = 'warn';
+    banner.style.margin = '12px 0';
+    $('nav.nav', main)?.insertAdjacentElement('afterend', banner);
+  }
+  banner.innerHTML = `${esc(t('syncTooLarge'))} <button class="btn small" type="button">${esc(t('exportBtn'))}</button>`;
+  $('button', banner).onclick = exportBackup;
+}
 function syncUsageText() {
   const usage = S.syncInfo()?.capacity;
   if (!usage) return '';
@@ -2558,7 +2577,7 @@ function syncPanel({ bare = false } = {}) {
     <div class="row"><button class="btn primary" id="sync-on">${t('syncEnable')}</button><a class="btn" href="#/join">${t('joinExisting')}</a><a class="btn" href="#/recover">${t('recoverLink')}</a></div>`);
   const parent = S.isParentDevice();
   return wrap(`<h2>${t('syncTitle')} <span class="badge ok">${t('syncIsOn')}</span> <span class="badge">${parent ? t('roleParent') : t('roleChild')}</span>${S.syncInfo()?.beta ? ` <span class="badge">${t('betaFamily')}</span>` : ''}</h2>
-    <p class="hint" id="sync-status">${esc(syncStatusText())}</p>
+    <p class="${syncStatusClass(syncState.state)}" id="sync-status">${esc(syncStatusText())}</p>
     <p class="hint" id="sync-usage">${esc(syncUsageText())}</p>
     <p class="hint">${t('syncUsageEstimates')}</p>
     <div id="sync-backup-row" ${syncBackupNeeded(syncState.state) ? '' : 'hidden'}><button class="btn small" id="sync-backup">${t('exportBtn')}</button></div>
@@ -2914,7 +2933,8 @@ const syncHooks = {
   onStatus(st) {
     syncState = st;
     const el = $('#sync-status');
-    if (el) el.textContent = syncStatusText();
+    if (el) { el.textContent = syncStatusText(); el.className = syncStatusClass(st.state); }
+    ensureTooLargeBanner();
     const usage = $('#sync-usage');
     if (usage) usage.textContent = syncUsageText();
     const backup = $('#sync-backup-row');
@@ -2965,7 +2985,7 @@ function paneSettings(el) {
         </details>
       </div>
     </details>
-    <details class="acc">
+    <details class="acc" ${syncState.state === 'too_large' ? 'open' : ''}>
       <summary>${t('syncFold')}</summary>
       <div class="acc-body"><p class="hint">${t('syncLight')}</p>${syncPanel({ bare: true })}</div>
     </details>

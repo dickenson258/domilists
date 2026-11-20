@@ -7,8 +7,15 @@
 //   on a route a Function handles
 import { decide } from "./seo-policy.js";
 
+// Cloudflare Pages' automatic Early Hints probe refetches HTML with these user agents
+// ("fl2 early hints", "nginx-ssl early hints"). It is not a visitor. The probe has a short
+// timeout; running it through redirects or HTMLRewriter is what lines up with the ~107-byte
+// 504s (0 visits). Hand the asset back untouched. Real visitors are unaffected.
+const EARLY_HINTS_UA = /early hints/i;
+
 export async function onRequest(context) {
   const request = context.request;
+  if (EARLY_HINTS_UA.test(request.headers.get("user-agent") || "")) return context.next();
   const host = request.headers.get("host") || new URL(request.url).host;
   const decision = decide(host, request.url);
   if (decision.redirect) return Response.redirect(decision.redirect.location, decision.redirect.status);

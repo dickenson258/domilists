@@ -7,7 +7,7 @@
   "license": "MIT",
   "scripts": {
     "start": "node server.js",
-    "test": "node --test scripts/seo-policy.test.mjs"
+    "test": "node --test scripts/seo-policy.test.mjs scripts/sync-quota.test.mjs"
   },
   "engines": {
     "node": ">=18"

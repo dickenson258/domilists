@@ -1,8 +1,12 @@
 # Cloudflare Pages 响应头（GitHub Pages 和本地预览会忽略这个文件）
+# ! Link：去掉 Pages 根据 HTML 里 rel=preload/preconnect/modulepreload 自动加的 Link 响应头。
+# 站点没有值得提前推送的资源（首页曾预加载的 icon.svg 对首屏没有帮助），
+# 而这些头会让 Pages 的 Early Hints 探针反复请求页面并记成 504。
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(self), microphone=(), geolocation=(), interest-cohort=()
+  ! Link
 
 /kidstube-helper.user.js
   Content-Type: text/javascript; charset=utf-8
