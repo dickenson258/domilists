@@ -4,7 +4,7 @@ import * as R from './resolver.js';
 import { detectHelper, onHelper, helperRequest, helperVersion, pingHelper } from './bridge.js';
 import { wrapSourceBuffer } from './h264fix.js';
 import * as S from './sync.js';
-import { readLargeLibrary, writeLargeLibrary } from './sync-storage.js';
+import { readLargeLibrary, readSyncBackup, writeLargeLibrary, writeSyncBackup } from './sync-storage.js';
 
 // 检测到朵米助手后，跨域请求改由助手发出
 onHelper(() => R.setTransport(helperRequest));
@@ -1759,8 +1759,12 @@ function askText({ title, label, hint = '', value = '', ok }) {
     $('#modal-root .mask')?.addEventListener('click', (e) => e.target.classList.contains('mask') && finish(null));
   });
 }
-function exportBackup() {
-  const blob = new Blob([JSON.stringify({ app: 'KidsTube', version: 1, groups: db.groups, videos: db.videos, seriesCovers: db.seriesCovers }, null, 2)], { type: 'application/json' });
+function backupJson({ groups, videos, seriesCovers }) {
+  return JSON.stringify({ app: 'KidsTube', version: 1, groups, videos, seriesCovers }, null, 2);
+}
+function exportBackup() { downloadBackup(backupJson(db)); }
+function downloadBackup(serialized) {
+  const blob = new Blob([serialized], { type: 'application/json' });
   const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: `kidstube-backup-${today()}.json` });
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
@@ -2561,10 +2565,18 @@ function ensureTooLargeBanner() {
   $('button', banner).onclick = exportBackup;
 }
 function syncUsageText() {
-  const usage = S.syncInfo()?.capacity;
-  if (!usage) return '';
+  const info = S.syncInfo();
+  if (!info) return '';
+  const count = t('syncCounts', db.videos.length, info.cloudCount ?? '—');
+  const usage = info.capacity;
+  if (!usage) return count;
   const percent = Math.round(usage.bytes / usage.limit * 100);
-  return t('syncUsage', db.videos.length, percent, usage.plan) + (usage.bytes >= usage.limit * .8 ? ' · ' + t('syncUsageWarn') : '');
+  return count + ' · ' + t('syncUsage', percent, usage.plan) + (usage.bytes >= usage.limit * .8 ? ' · ' + t('syncUsageWarn') : '');
+}
+function syncConflictDetails() {
+  const info = S.syncInfo();
+  if (syncState.state !== 'pending_conflict' || !info) return '';
+  return t('syncConflictDetails', info.version || '—', info.cloudVersion || '—', t('syncReason_' + syncState.reason));
 }
 function syncPanel({ bare = false } = {}) {
   const wrap = (inner) => bare ? inner : `<div class="panel">${inner}</div>`;
@@ -2580,7 +2592,14 @@ function syncPanel({ bare = false } = {}) {
     <p class="${syncStatusClass(syncState.state)}" id="sync-status">${esc(syncStatusText())}</p>
     <p class="hint" id="sync-usage">${esc(syncUsageText())}</p>
     <p class="hint">${t('syncUsageEstimates')}</p>
-    <div id="sync-backup-row" ${syncBackupNeeded(syncState.state) ? '' : 'hidden'}><button class="btn small" id="sync-backup">${t('exportBtn')}</button></div>
+    <p class="hint" id="sync-conflict-details" ${syncState.state === 'pending_conflict' ? '' : 'hidden'}>${esc(syncConflictDetails())}</p>
+    <div id="sync-backup-row" ${syncBackupNeeded(syncState.state) ? '' : 'hidden'}>
+      <div class="row">
+        <button class="btn small" id="sync-backup">${t('exportBtn')}</button>
+        <button class="btn small primary" id="sync-use-cloud" ${syncState.state === 'pending_conflict' && S.syncInfo()?.cloudVersion ? '' : 'hidden'}>${t('syncUseCloud')}</button>
+      </div>
+    </div>
+    <p id="sync-saved-backup" hidden><button class="btn small" id="sync-download-backup">${t('syncDownloadBackup')}</button></p>
     ${parent ? `<h3>${t('devTitle')}</h3><div id="sync-devices" class="device-list"><p class="hint">${t('devLoading')}</p></div>` : `<p class="hint">${t('devChildNote')}</p>`}
     <div class="row">${parent ? `<button class="btn primary" id="sync-add">${t('syncAddDevice')}</button><button class="btn" id="sync-rc">${t('rcButton')}</button>` : ''}<button class="btn" id="sync-now">${t('syncNow')}</button>
       <div class="spacer"></div><button class="btn small" id="sync-leave">${t('syncLeave')}</button>${parent ? `<button class="btn danger small" id="sync-del">${t('syncDelete')}</button>` : ''}</div>`);
@@ -2671,6 +2690,31 @@ function bindSyncPanel(el) {
     try { showRecoveryDialog(await S.newRecoveryCode()); } catch (err) { toast(t('syncErr', err.message)); }
   });
   on('sync-backup', exportBackup);
+  const savedBackup = $('#sync-saved-backup', el);
+  if (savedBackup) {
+    readSyncBackup().then((data) => { if (data) savedBackup.hidden = false; }).catch(() => {});
+    on('sync-download-backup', async () => {
+      try { const data = await readSyncBackup(); if (data) downloadBackup(data); }
+      catch { toast(t('syncBackupFailed')); }
+    });
+  }
+  on('sync-use-cloud', async (event) => {
+    const button = event.currentTarget;
+    const info = S.syncInfo();
+    if (syncState.state !== 'pending_conflict' || !info?.cloudVersion || button.disabled) return;
+    button.disabled = true;
+    try {
+      const accepted = await confirmBox({ title: t('syncUseCloud'), ok: t('syncUseCloud'),
+        body: esc(t('syncUseCloudConfirm', db.videos.length, info.cloudCount ?? '—')) });
+      if (!accepted || !button.isConnected) return;
+      await S.useCloudVersion(info.cloudVersion);
+      if (savedBackup) savedBackup.hidden = false;
+      toast(t('syncCloudApplied'));
+    } catch (err) {
+      toast(err.message === 'backup_failed' ? t('syncBackupFailed')
+        : ['version_changed', 'local_changed', 'session_changed'].includes(err.message) ? t('syncTryAgain') : t('syncErr', err.message));
+    } finally { button.disabled = false; }
+  });
   on('sync-now', async () => { await S.syncNow(); toast(syncState.state === 'ok' ? t('syncDone') : syncStatusText()); });
   on('sync-leave', async () => {
     if (!(await confirmBox({ title: t('syncLeave'), body: t('syncLeaveBody'), ok: t('syncLeave') }))) return;
@@ -2915,6 +2959,7 @@ async function renderPair(code, inApp) {
 }
 const syncHooks = {
   getDb: () => db,
+  backupLocal: (snap) => writeSyncBackup(backupJson(snap)),
   async applyRemote(snap) {
     const previous = { groups: db.groups, videos: db.videos, seriesCovers: db.seriesCovers, settings: { ...db.settings } };
     if (Array.isArray(snap.groups)) db.groups = snap.groups;
@@ -2939,6 +2984,10 @@ const syncHooks = {
     if (usage) usage.textContent = syncUsageText();
     const backup = $('#sync-backup-row');
     if (backup) backup.hidden = !syncBackupNeeded(st.state);
+    const useCloud = $('#sync-use-cloud');
+    if (useCloud) useCloud.hidden = st.state !== 'pending_conflict' || !S.syncInfo()?.cloudVersion;
+    const detail = $('#sync-conflict-details');
+    if (detail) { detail.hidden = st.state !== 'pending_conflict'; detail.textContent = syncConflictDetails(); }
   },
   // 家长把这台设备移除了：按家长的选择清空同步来的片单
   onRevoked(wipe) {
@@ -3097,11 +3146,13 @@ async function backfillSeriesCovers() {
 // 旧数据补全：YouTube 新版播放列表导入的视频之前没读到频道名，首页按频道分类时看不到。
 // 打开页面时用 oEmbed 补上（每次最多 30 个，逐个请求），补完刷新当前页面
 async function fillYouTubeChannels() {
+  if (S.syncOn() && !S.isParentDevice()) return;
   const todo = db.videos.filter((v) => v.platform === 'youtube' && !v.author).slice(0, 30);
   let n = 0;
   for (const v of todo) {
     try {
       const info = await R.ytInfo(v.vid);
+      if (S.syncOn() && !S.isParentDevice()) return;
       if (info.author) { v.author = info.author; v.authorUrl = v.authorUrl || info.authorUrl; n++; }
     } catch {}
   }
@@ -3112,10 +3163,12 @@ async function fillYouTubeChannels() {
 
 // 百度网盘的封面地址几小时后过期：装了助手时，每次打开页面按文件夹重新取一次（最多 10 个文件夹）
 async function refreshBdpanThumbs() {
+  if (S.syncOn() && !S.isParentDevice()) return;
   const vids = db.videos.filter((v) => v.platform === 'baidupan');
   if (!vids.length || !(await detectHelper(3000))) return;
   const dirs = [...new Set(vids.map((v) => v.vid.replace(/\/[^/]*$/, '') || '/'))].slice(0, 10);
   const thumbs = await R.bdpanThumbs(dirs);
+  if (S.syncOn() && !S.isParentDevice()) return;
   let n = 0;
   vids.forEach((v) => { const th = thumbs.get(v.vid); if (th && th !== v.thumb) { v.thumb = th; n++; } });
   if (!n) return;

@@ -92,7 +92,7 @@ const status = (state, extra = {}) => hooks?.onStatus?.({ state, at: cfg?.at || 
 const queue = (fn) => (busy = busy.then(fn, fn));
 
 export const syncOn = () => !!cfg?.token;
-export const syncInfo = () => (cfg ? { at: cfg.at || null, version: cfg.version || 0, role: cfg.role, deviceId: cfg.deviceId, beta: !!cfg.beta, since: cfg.since || null, capacity: cfg.capacity } : null);
+export const syncInfo = () => (cfg ? { at: cfg.at || null, version: cfg.version || 0, role: cfg.role, deviceId: cfg.deviceId, beta: !!cfg.beta, since: cfg.since || null, capacity: cfg.capacity, cloudVersion: cfg.cloudVersion, cloudCount: cfg.cloudCount } : null);
 export const isParentDevice = () => cfg?.role === 'parent';
 
 function revoked(wipe) {
@@ -103,6 +103,23 @@ function revoked(wipe) {
 }
 
 const snapshotHash = (serialized) => digest('snapshot-v2', serialized).then(hex);
+function childSnapshotHash(serialized) {
+  const value = JSON.parse(serialized);
+  for (const video of value.videos) {
+    if (video.platform === 'youtube') {
+      delete video.author;
+      delete video.authorUrl;
+    }
+    if (video.platform === 'baidupan') delete video.thumb;
+  }
+  return snapshotHash(print(value));
+}
+function observeCloudList(current, head, count) {
+  if (current.cloudVersion !== head.version) delete current.cloudCount;
+  current.cloudVersion = head.version;
+  if (Number.isInteger(count)) current.cloudCount = count;
+}
+const conflict = (reason) => { status('pending_conflict', { reason }); return false; };
 const hashBytes = (raw) => crypto.subtle.digest('SHA-256', raw).then(hex);
 const isCurrent = (current) => cfg === current;
 const cloudCapacity = (r, current = cfg) => {
@@ -288,7 +305,9 @@ async function push() {
       return;
     }
     if (result.status !== 200) throw new Error(result.error || 'HTTP ' + result.status);
-    finishSnapshot(current, result, fingerprint);
+    const childBaseline = current.role === 'child' ? await childSnapshotHash(serialized) : undefined;
+    checkSession(current);
+    finishSnapshot(current, result, fingerprint, JSON.parse(serialized).videos.length, childBaseline);
     lastPrint = serialized;
     status('ok');
   } catch (error) {
@@ -298,7 +317,9 @@ async function push() {
   }
 }
 
-function finishSnapshot(current, head, fingerprint) {
+function finishSnapshot(current, head, fingerprint, count, childBaseline) {
+  observeCloudList(current, head, count);
+  current.childBaseline = childBaseline;
   current.version = head.version;
   current.at = head.updatedAt;
   current.baseline = fingerprint;
@@ -323,16 +344,15 @@ async function pull(retryVersion = true) {
     if (head.status !== 200) throw new Error(head.error || 'HTTP ' + head.status);
     cloudCapacity(head, current);
     if (head.role) current.role = head.role;
+    observeCloudList(current, head);
     let local = print(snapshot(hooks.getDb())), localHash = await snapshotHash(local);
     checkSession(current);
     if (current.pending?.id === head.upload && head.upload) {
       finishSnapshot(current, head, current.pending.fingerprint);
     }
+    const child = current.role === 'child';
     if (current.initialHash) {
-      if (current.initialHash !== localHash) {
-        status('pending_conflict');
-        return false;
-      }
+      if (current.initialHash !== localHash) return conflict('initial_changed');
       await downloadInitial(current, head);
       status('ok');
       return true;
@@ -341,26 +361,40 @@ async function pull(retryVersion = true) {
       status('ok');
       return true;
     }
-    if (head.version === current.version && current.baseline) {
-      if (current.baseline === localHash) { lastPrint = local; status('ok'); }
-      else if (current.rejectedSnapshot === localHash && current.rejectedLimit === syncUploadLimit(head.capacity)) {
+    const sameVersion = head.version === current.version;
+    if (sameVersion && current.baseline && (!child || current.childBaseline || current.baseline === localHash)) {
+      const childLocal = child && (current.baseline !== localHash || !current.childBaseline)
+        ? await childSnapshotHash(local) : undefined;
+      checkSession(current);
+      if (current.baseline === localHash) {
+        const count = JSON.parse(local).videos.length;
+        observeCloudList(current, head, count);
+        if (child && !current.childBaseline) { current.childBaseline = childLocal; saveCfg(); }
+        lastPrint = local;
+        status('ok');
+      } else if (child && childLocal === current.childBaseline) {
+        lastPrint = local;
+        status('ok');
+      } else if (current.rejectedSnapshot === localHash && current.rejectedLimit === syncUploadLimit(head.capacity)) {
         rejectedPrint = local;
         status('too_large');
       }
       return true;
     }
     const remote = await readSnapshot(current, head);
-    const remoteHash = await snapshotHash(print(snapshot({ ...remote, settings: remote.settings || {} })));
+    observeCloudList(current, head, remote.videos.length);
+    const remotePrint = print(snapshot({ ...remote, settings: remote.settings || {} }));
+    const remoteHash = await snapshotHash(remotePrint);
     checkSession(current);
     // Re-read after downloading: edits made during the transfer must not be replaced.
     const latest = print(snapshot(hooks.getDb()));
     if (latest !== local) { local = latest; localHash = await snapshotHash(local); }
+    const childLocal = child ? await childSnapshotHash(local) : undefined;
+    const childRemote = child ? await childSnapshotHash(remotePrint) : undefined;
     checkSession(current);
-    if (local !== print(snapshot(hooks.getDb()))) {
-      status('pending_conflict');
-      return false;
-    }
-    if (head.version === current.version && !current.baseline) {
+    if (local !== print(snapshot(hooks.getDb()))) return conflict('during_pull');
+    const safeChildUpdate = child && (childLocal === childRemote || childLocal === current.childBaseline);
+    if (sameVersion && !current.baseline && !child) {
       // Existing v1 devices may already have edits the old client failed to upload.
       // Establish the server baseline, then compress and send any differences.
       current.baseline = remoteHash;
@@ -368,13 +402,17 @@ async function pull(retryVersion = true) {
       if (remoteHash === localHash) { lastPrint = local; status('ok'); }
       return true;
     }
-    if (localHash !== remoteHash && (!current.baseline || localHash !== current.baseline)) {
-      status('pending_conflict');
-      return false;
+    if (sameVersion && current.baseline && localHash !== remoteHash && !safeChildUpdate) {
+      // The raw baseline still establishes that this device is editing the current cloud version.
+      if (child && remoteHash === current.baseline) { current.childBaseline = childRemote; saveCfg(); }
+      return true;
+    }
+    if (localHash !== remoteHash && !safeChildUpdate && (!current.baseline || localHash !== current.baseline)) {
+      return conflict(current.baseline ? 'local_changed' : 'baseline_missing');
     }
     if (localHash !== remoteHash) await applyDownloaded(current, head, remote);
     else {
-      finishSnapshot(current, head, localHash);
+      finishSnapshot(current, head, localHash, remote.videos.length, childLocal);
       lastPrint = local;
     }
     status('ok');
@@ -382,7 +420,7 @@ async function pull(retryVersion = true) {
   } catch (error) {
     if (!isCurrent(current)) return false;
     if (retryVersion && error.message === 'version_changed') return pull(false);
-    if (error.message === 'pending_conflict') { status('pending_conflict'); return false; }
+    if (error.message === 'pending_conflict') return conflict('initial_changed');
     status('error', { error: String(error.message || error) });
     return false;
   }
@@ -397,9 +435,10 @@ async function applyDownloaded(current, head, snap) {
     await applied;
     checkSession(current);
     const fingerprint = await snapshotHash(stored);
+    const childBaseline = current.role === 'child' ? await childSnapshotHash(stored) : undefined;
     checkSession(current);
     lastPrint = stored;
-    finishSnapshot(current, head, fingerprint);
+    finishSnapshot(current, head, fingerprint, snap.videos.length, childBaseline);
   } finally { applying = false; }
 }
 
@@ -461,6 +500,7 @@ async function downloadInitial(current, initialHead) {
     cloudCapacity(head, current);
     try {
       const snap = await readSnapshot(current, head);
+      observeCloudList(current, head, snap.videos.length);
       const local = print(snapshot(hooks.getDb()));
       const fingerprint = await snapshotHash(local);
       checkSession(current);
@@ -542,6 +582,38 @@ export async function serviceStatus() {
 }
 
 export const syncNow = () => queue(async () => { if (await pull()) await push(); });
+
+export function useCloudVersion(expectedVersion) {
+  if (!syncOn()) return Promise.reject(new Error('session_changed'));
+  const current = cfg;
+  const local = print(snapshot(hooks.getDb()));
+  return queue(async () => {
+    checkSession(current);
+    const head = await retry(() => v2(current, 'GET'));
+    checkSession(current);
+    if (head.status !== 200) throw new Error(head.error || 'HTTP ' + head.status);
+    try {
+      if (!head.version || head.version !== expectedVersion) throw new Error('version_changed');
+      const remote = await readSnapshot(current, head);
+      checkSession(current);
+      if (local !== print(snapshot(hooks.getDb()))) throw new Error('local_changed');
+      try { await hooks.backupLocal(JSON.parse(local)); }
+      catch { throw new Error('backup_failed'); }
+      checkSession(current);
+      const latest = await retry(() => v2(current, 'GET'));
+      checkSession(current);
+      if (latest.status !== 200) throw new Error(latest.error || 'HTTP ' + latest.status);
+      if (latest.version !== head.version) throw new Error('version_changed');
+      if (local !== print(snapshot(hooks.getDb()))) throw new Error('local_changed');
+      cloudCapacity(latest, current);
+      await applyDownloaded(current, head, remote);
+      status('ok');
+    } catch (error) {
+      if (isCurrent(current) && error.message === 'version_changed') await pull();
+      throw error;
+    }
+  });
+}
 
 export async function listDevices() {
   const r = await call('GET', '/devices');
