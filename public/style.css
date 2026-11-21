@@ -88,6 +88,9 @@ img { display: block; }
 .player.portrait { aspect-ratio: 9 / 16; max-height: 78vh; width: auto; margin: 0 auto; }
 .player iframe, .player video { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #000; }
 .player .msg { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; text-align: center; padding: 24px; gap: 12px; align-content: center; }
+.player-netdisk:not(:has(video)):not(:is(:fullscreen, :-webkit-full-screen, .pseudo-fs)) { aspect-ratio: auto; background: var(--surface); }
+.player-netdisk:not(:has(video)):not(:is(:fullscreen, :-webkit-full-screen, .pseudo-fs)) .msg { position: static; min-height: 140px; color: var(--text); }
+.player-netdisk:not(:has(video)):not(:is(:fullscreen, :-webkit-full-screen, .pseudo-fs)) .player-fullscreen { display: none; }
 .watch h1 { font-size: 22px; margin: 16px 0 4px; }
 .watch .meta { color: var(--muted); }
 .side { display: flex; flex-direction: column; gap: 12px; }

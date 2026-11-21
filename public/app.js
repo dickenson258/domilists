@@ -1160,15 +1160,23 @@ function mountVideo(box, v, src, onEnded, onFail, { forceHls = false, hlsConfig 
 
 // 百度网盘：助手取播放列表（m3u8），分片也由助手代取（网盘服务器不允许网页直接读取），在朵米片单播放器里播放
 async function mountBdpan(box, v, onEnded) {
-  const msg = (html) => (box.innerHTML = `<div class="msg">${html}</div>`);
-  msg(`<div class="spin"></div><div>${t('loading')}</div>`);
-  if (!(await detectHelper(1500))) return msg(`<div>${t('bdpanNeedHelper')}</div>`);
+  const msg = (html) => {
+    if (box.isConnected) box.innerHTML = `<div class="msg" role="status">${html}</div>`;
+  };
+  msg(`<div class="spin dark"></div><div>${t('loading')}</div>`);
+  const hasHelper = await detectHelper(1500);
+  if (!box.isConnected) return;
+  if (!hasHelper) {
+    msg(`<div>${t('bdpanNeedHelper')}</div><a class="btn" href="#/parent/accounts">${t('tabAccounts')}</a>`);
+    return;
+  }
   let text;
   try {
-    text = await R.bdpanStream(v.vid, 'M3U8_AUTO_720', (sec) => box.isConnected && sec && msg(`<div class="spin"></div><div>${t('bdpanWait', sec)}</div>`));
+    text = await R.bdpanStream(v.vid, 'M3U8_AUTO_720', (sec) => box.isConnected && sec && msg(`<div class="spin dark"></div><div>${t('bdpanWait', sec)}</div>`));
   } catch (e) {
     if (!box.isConnected) return;
-    return msg(`<div>${esc(errText(e))}</div><a class="btn primary" href="#/parent/accounts">${t('tabAccounts')}</a>`);
+    msg(`<div>${esc(errText(e))}</div><a class="btn primary" href="#/parent/accounts">${t('tabAccounts')}</a>`);
+    return;
   }
   if (!box.isConnected) return;
   // 百度每 4 分钟（换一个 ts 文件）标一次 DISCONTINUITY，但时间戳其实是连续的。
@@ -1234,11 +1242,12 @@ function renderWatch(id) {
   document.title = v.title + ' · ' + t('appName');
   const eps = v.series ? seriesEps(v.series.id) : [];
   const next = nextEpisode(v);
+  const isNetdisk = v.playType === 'bdpan';
   app.innerHTML =
     topbar('', { parents: false, lang: false }) +
     `<main class="wrap watch ${eps.length > 1 ? 'watch-series' : ''}">
       <section>
-        <div class="player" id="player">
+        <div class="player${isNetdisk ? ' player-netdisk' : ''}" id="player">
           <div id="player-media"></div>
           <button type="button" class="player-fullscreen" id="fs"></button>
         </div>
@@ -1279,11 +1288,20 @@ function renderWatch(id) {
   // 播放记录：从上次的位置接着播（YouTube / B 站 / 直链视频能定位；其他网站的嵌入播放器只记录"看过"）
   const resumeAt = resumePoint(v.id);
   let moved = !resumeAt;
-  const startPlayer = (at) => { unmount?.(); Promise.resolve(mountPlayer(media, { ...v, resumeAt: at }, onEnded)).then((fn) => (unmount = fn)); };
+  const startPlayer = async (at) => {
+    unmount?.();
+    unmount = undefined;
+    const dispose = await mountPlayer(media, { ...v, resumeAt: at }, onEnded);
+    if (typeof dispose !== 'function') return;
+    if (media.isConnected) unmount = dispose;
+    else dispose();
+  };
   startPlayer(resumeAt);
-  if (!progressOf(v.id)) setProgress(v.id, 0, durSec(v.duration));
-  else db.progress[v.id].at = Date.now();
-  save();
+  if (!isNetdisk) {
+    if (!progressOf(v.id)) setProgress(v.id, 0, durSec(v.duration));
+    else db.progress[v.id].at = Date.now();
+    save();
+  }
   if (resumeAt) {
     const bar = document.createElement('div');
     bar.className = 'resume-bar';
@@ -1355,6 +1373,7 @@ function renderWatch(id) {
   fs.onclick = async () => {
     if (box.classList.contains('pseudo-fs')) return exitPseudo();
     if (fullscreenElement() === box) return exitNative();
+    if (isNetdisk && !$('video', media)) return;
     const req = box.requestFullscreen || box.webkitRequestFullscreen;
     if (req) {
       try { await req.call(box); return; } catch {}
@@ -1368,7 +1387,7 @@ function renderWatch(id) {
 
   // 观看计时（页面可见时累计）
   const timer = setInterval(() => {
-    if (document.hidden) return;
+    if (document.hidden || (isNetdisk && !$('video', media))) return;
     usage().sec++;
     if (estimate && $('iframe', box) && ++watched === estimate + 2 && !$('.next-hint', box)) {
       const hint = document.createElement('div');
