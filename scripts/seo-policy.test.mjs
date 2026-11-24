@@ -195,6 +195,15 @@ test('homepage and privacy publish a self-referencing canonical and do not noind
   assert.match(home, /#\\\/\(import\|i\|s\)/);
   assert.match(home, /params\.has\("import"\)/);
   assert.match(home, /src="\/visit-source\.js"/);
+  const resources = home.match(/<div id="home-resource-links"[\s\S]*?<\/div>/)?.[0];
+  assert.ok(resources, 'the initial HTML must contain the public parent links');
+  for (const lang of ['zh', 'en']) {
+    for (const path of ['watchlists/english-starter-ages-3-6', 'watchlists/mandarin-starter-ages-3-6', 'guides/youtube-kids-alternative']) {
+      const url = `https://lists.domibuddy.com/${lang}/${path}/`;
+      assert.ok(resources.includes(`href="${url}"`), url);
+      assert.ok(fs.existsSync(new URL(`../public/${lang}/${path}/index.html`, import.meta.url)), url);
+    }
+  }
   assert.match(privacy, /<link rel="canonical" href="https:\/\/lists\.domibuddy\.com\/privacy" \/>/);
   assert.match(privacy, /我们不收集、不出售任何个人信息/);
   assert.doesNotMatch(privacy, /<meta name="robots"/);

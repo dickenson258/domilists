@@ -11,6 +11,7 @@ onHelper(() => R.setTransport(helperRequest));
 detectHelper();
 
 const $ = (s, el = document) => el.querySelector(s);
+const homeResourceLinks = $('#home-resource-links');
 const esc = (s = '') => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const today = () => new Date().toLocaleDateString('sv-SE');
@@ -516,6 +517,7 @@ function renderHome() {
     if (db.settings.pinHash && !(await pinDialog({ title: t('pinVerifyTitle'), sub: t('pinVerifySub') }))) return;
     exportBackup();
   });
+  if (homeResourceLinks) $('.path-starter .join-link')?.before(homeResourceLinks);
   $('#guide-parent')?.addEventListener('click', () => $('#parent-btn')?.click());
   $('#clear-filters')?.addEventListener('click', () => { homeQuery = ''; homeGroup = ALL; homeCreator = ALL; renderHome(); });
   // 已安装，重新检测：先问一下助手；没回应就刷新页面（刚装好的脚本要刷新后才会注入）
@@ -623,7 +625,6 @@ function emptyHome() {
       <section class="path-card path-starter">
         <h2>${t('pathStarterTitle')}</h2>
         <p>${t('pathStarterBody')}</p>
-        <a class="btn starter-btn" href="${starterPage()}">${t('pathStarterCta')}</a>
         <a class="join-link" href="#/join">${t('pathJoin')}</a>
       </section>
     </div>

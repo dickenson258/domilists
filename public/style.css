@@ -417,6 +417,11 @@ button, a, .card, .pick { -webkit-tap-highlight-color: transparent; }
 .welcome-step .num { flex: none; width: 32px; height: 32px; border-radius: 50%; background: var(--brand); color: #fff; font-weight: 800; display: flex; align-items: center; justify-content: center; }
 .welcome-step .body { flex: 1; min-width: 0; }
 .welcome-step h3 { margin: 4px 0 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.home-resources nav { display: grid; gap: 6px; }
+html[lang="en"] .home-resources nav[lang="zh-CN"],
+html[lang="zh-CN"] .home-resources nav[lang="en"] { display: none; }
+.home-resources a { color: var(--text); text-underline-offset: 3px; }
+#app > .home-resources { padding: 12px 20px; }
 .guide-dev { font-weight: 700; margin: 10px 0 4px; }
 .guide-steps { margin: 0 0 8px; padding-left: 20px; line-height: 1.7; font-size: 14px; }
 .guide-steps li { margin-bottom: 10px; }
@@ -533,7 +538,6 @@ button, a, .card, .pick { -webkit-tap-highlight-color: transparent; }
 .path-add { background: #fff; border: 1.5px solid #ff7a59; }
 .path-starter { background: var(--surface-2); }
 .path-card .btn { min-width: min(100%, 220px); }
-.starter-btn { background: transparent; color: var(--text); border: 1.5px solid #ff7a59; }
 .path-note { font-size: 13px; color: var(--muted); }
 .join-link { font-weight: 700; }
 .helper-fold { margin-top: 28px; border-top: 1px solid var(--line); padding-top: 12px; }
